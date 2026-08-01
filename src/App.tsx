@@ -6,6 +6,9 @@ import { SidebarProvider } from './components/ui/sidebar';
 import AppSidebar from './components/sidebar';
 
 function App() {
+  const [config, setConfig] = useState(null);
+
+  // Theme
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
@@ -28,10 +31,24 @@ function App() {
     };
   }, []);
 
+  // Config
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const config = await invoke('get_config');
+        setConfig(config);
+        console.log('Config:', config);
+      } catch (error) {
+        console.error('Error fetching config', error);
+      }
+    };
+    fetchConfig();
+  }, []);
+
   const [searchQuery, setSearchQuery] = useState('');
 
   return (
-    <div className="bg-background text-foreground w-screen h-screen relative">
+    <div className="bg-background text-foreground w-screen h-screen relative selection:bg-foreground selection:text-background">
       <SidebarProvider>
         <div className="w-full h-full flex">
           <AppSidebar />

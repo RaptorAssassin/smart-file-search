@@ -1,0 +1,69 @@
+use anyhow::Result;
+use std::collections::HashSet;
+use std::fs;
+use std::path::Path;
+use std::path::PathBuf;
+use std::sync::RwLock;
+use tauri::AppHandle;
+use tauri::Manager;
+
+use crate::commands::config::models::Config;
+use crate::AppState;
+
+pub struct ConfigManager {
+    config: RwLock<Config>,
+    blacklist: RwLock<HashSet<PathBuf>>,
+    config_path: PathBuf,
+}
+
+impl ConfigManager {
+    pub fn load_config(app_handle: &AppHandle) -> Result<Self> {
+        let config_path = Self::get_config_path(app_handle)?;
+
+        Self::ensure_config_exists(&config_path)?;
+
+        let config = Self::read_config(&config_path)?;
+
+        // Save blacklisted paths to a HashSet
+        let blacklist = config
+            .indexing
+            .excluded_paths
+            .iter()
+            .map(PathBuf::from)
+            .collect::<HashSet<_>>();
+
+        Ok(Self {
+            config: RwLock::new(config),
+            blacklist: RwLock::new(blacklist),
+            config_path,
+        })
+    }
+
+    pub fn get_config_path(app_handle: &AppHandle) -> Result<PathBuf> {
+        let app_dir = app_handle.path().app_config_dir()?;
+        let config_path = app_dir.join("config.json");
+        Ok(config_path)
+    }
+
+    pub fn ensure_config_exists(config_path: &PathBuf) -> Result<()> {
+        if !config_path.exists() {
+            let default_config = Config::default();
+            let config_json = serde_json::to_string_pretty(&default_config)?;
+            fs::create_dir_all(config_path.parent().unwrap())?;
+            fs::write(config_path, config_json)?;
+        }
+        Ok(())
+    }
+
+    pub fn read_config(config_path: &Path) -> Result<Config> {
+        let config_json = fs::read_to_string(config_path)?;
+        let config: Config = serde_json::from_str(&config_json)?;
+        Ok(config)
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn get_config(state: tauri::State<AppState>) -> Config {
+    state.config_manager.config.read().unwrap().clone()
+}

@@ -36,13 +36,21 @@ export default function DebugMenu({ openButton }: { openButton: React.ReactNode 
   return (
     <Dialog>
       <DialogTrigger>{openButton}</DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
+      <DialogContent className="min-w-1/2 min-h-1/2 flex flex-col">
+        <DialogHeader className="">
           <DialogTitle className="text-xl">Debug</DialogTitle>
         </DialogHeader>
-        <h1 className="text-lg">Database</h1>
-        <p>Database Path: {debugInfo.databasePath}</p>
-        <p>Database Size: {formatBytes(debugInfo.databaseSize ?? 0)}</p>
+        <div className="w-full h-full flex flex-col gap-2">
+          <div>
+            <h1 className="text-lg">Database</h1>
+            <p>Database Path: {debugInfo.databasePath}</p>
+            <p>Database Size: {formatBytes(debugInfo.databaseSize ?? 0)}</p>
+          </div>
+
+          <div>
+            <h1 className="text-lg">Config</h1>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

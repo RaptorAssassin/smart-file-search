@@ -12,8 +12,8 @@ pub struct DbState {
 pub fn init_database(app_handle: &AppHandle) -> Result<(Connection, PathBuf)> {
     let app_dir = app_handle
         .path()
-        .app_data_dir()
-        .expect("Failed to get app data dir");
+        .app_config_dir()
+        .expect("Error accessing app directory");
     create_dir_all(&app_dir).expect("Failed to create app database folder");
 
     let db_path = app_dir.join("app.db");
