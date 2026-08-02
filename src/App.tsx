@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import { Input } from './components/ui/input';
 import { SidebarProvider } from './components/ui/sidebar';
 import AppSidebar from './components/sidebar';
+import { commands, type Config } from './bindings/bindings';
 
 function App() {
-  const [config, setConfig] = useState(null);
+  const [config, setConfig] = useState<Config | null>(null);
 
   // Theme
   useEffect(() => {
@@ -35,7 +36,7 @@ function App() {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const config = await invoke('get_config');
+        const config = await commands.getConfig();
         setConfig(config);
         console.log('Config:', config);
       } catch (error) {
