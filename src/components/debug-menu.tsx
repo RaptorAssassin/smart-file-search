@@ -35,7 +35,7 @@ export default function DebugMenu({ openButton }: { openButton: React.ReactNode 
 
   return (
     <Dialog>
-      <DialogTrigger>{openButton}</DialogTrigger>
+      <DialogTrigger tabIndex={-1}>{openButton}</DialogTrigger>
       <DialogContent className="min-w-1/2 min-h-1/2 flex flex-col">
         <DialogHeader className="">
           <DialogTitle className="text-xl">Debug</DialogTitle>

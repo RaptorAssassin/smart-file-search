@@ -1,73 +1,107 @@
-import { invoke } from '@tauri-apps/api/core';
 import './App.css';
 import { useEffect, useState } from 'react';
 import { Input } from './components/ui/input';
 import { SidebarProvider } from './components/ui/sidebar';
 import AppSidebar from './components/sidebar';
-import { commands, type Config } from './bindings/bindings';
+import { commands, Theme } from './bindings/bindings';
+import { useConfigStore } from './stores/config-stores';
+import { XIcon } from 'lucide-react';
+import { Button } from './components/ui/button';
 
 function App() {
-  const [config, setConfig] = useState<Config | null>(null);
+  const setConfig = useConfigStore((state) => state.setConfig);
+  const config = useConfigStore((state) => state.config);
 
-  // Theme
   useEffect(() => {
+    const root = document.documentElement;
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
-    const handleThemeChange = (event: MediaQueryListEvent | MediaQueryList) => {
-      const root = document.getElementById('root');
-      if (!root) return;
-      if (event.matches) {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
+    const applyTheme = (theme: Theme) => {
+      switch (theme) {
+        case 'Dark':
+          root.classList.add('dark');
+          break;
+
+        case 'Light':
+          root.classList.remove('dark');
+          break;
+
+        case 'System':
+          root.classList.toggle('dark', mediaQuery.matches);
+          break;
       }
-
-      handleThemeChange(mediaQuery);
-
-      mediaQuery.addEventListener('change', handleThemeChange);
-
-      return () => {
-        mediaQuery.removeEventListener('change', handleThemeChange);
-      };
     };
-  }, []);
 
-  // Config
+    let theme = config?.settings?.theme;
+
+    if (!theme) {
+      theme = mediaQuery.matches ? 'Dark' : 'Light';
+    }
+
+    applyTheme(theme);
+
+    if (theme !== 'System') {
+      return;
+    }
+
+    const handleThemeChange = (event: MediaQueryListEvent) => {
+      root.classList.toggle('dark', event.matches);
+    };
+
+    mediaQuery.addEventListener('change', handleThemeChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleThemeChange);
+    };
+  }, [config?.settings?.theme]);
+
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const config = await commands.getConfig();
-        setConfig(config);
-        console.log('Config:', config);
+        const nextConfig = await commands.getConfig();
+        setConfig(nextConfig);
       } catch (error) {
         console.error('Error fetching config', error);
       }
     };
+
     fetchConfig();
-  }, []);
+  }, [setConfig]);
 
   const [searchQuery, setSearchQuery] = useState('');
 
   return (
-    <div className="bg-background text-foreground w-screen h-screen relative selection:bg-foreground selection:text-background">
-      <SidebarProvider>
-        <div className="w-full h-full flex">
-          <AppSidebar />
-          <div className="w-full h-full relative">
-            <div className="absolute top-3 left-1/2 transform -translate-x-1/2">
-              <div className="rounded-2xl bg-accent min-w-80 h-8 flex items-center justify-center p-2">
-                <Input
-                  type="text"
-                  placeholder="Search for a file..."
-                  className="bg-transparent border-none focus:border-none focus-visible:ring-0 focus:outline-none  w-full h-full"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+    <div className="bg-background text-foreground flex h-screen w-screen selection:bg-foreground selection:text-background">
+      <SidebarProvider className="flex h-full w-full">
+        <AppSidebar />
+        <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+          {/* Search Input */}
+          <div className="p-4">
+            <div className="rounded-(--radius) p-1 relative flex items-center justify-center">
+              <Input
+                type="text"
+                placeholder="Search for a file..."
+                className="h-full w-full border-none bg-transparent p-1.5 focus:border-none focus-visible:ring-0 focus:outline-none "
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                  <Button
+                    variant="secondary"
+                    size="icon-sm"
+                    className=" active:translate-y-0 data-[slot=button]:active:scale-95 "
+                    onClick={() => setSearchQuery('')}
+                  >
+                    <XIcon />
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-        <div className="w-full h-full">{searchQuery}</div>
+          {/* Search Results */}
+          <div className="w-full h-full"></div>
+        </main>
       </SidebarProvider>
     </div>
   );
