@@ -7,6 +7,7 @@ export const commands = {
 	getDatabasePath: () => __TAURI_INVOKE<string>("get_database_path"),
 	getDatabaseSize: () => typedError<number, string>(__TAURI_INVOKE("get_database_size")),
 	getConfig: () => __TAURI_INVOKE<Config>("get_config"),
+	saveConfig: (config: Config) => typedError<null, string>(__TAURI_INVOKE("save_config", { config })),
 };
 
 /* Types */
@@ -21,6 +22,7 @@ export type IndexingConfig = {
 
 export type SettingsConfig = {
 	theme?: Theme,
+	enable_debug_menu?: boolean | null,
 };
 
 export type Theme = "Dark" | "Light" | "System";

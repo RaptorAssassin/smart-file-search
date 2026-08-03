@@ -14,7 +14,7 @@ type DebugInfo = {
   databaseSize: number | null;
 };
 
-export default function DebugMenu({ openButton }: { openButton: React.ReactNode }) {
+export default function DebugMenu({ openButton }: { openButton: React.ReactElement }) {
   const [debugInfo, setDebugInfo] = useState<DebugInfo>({
     databasePath: null,
     databaseSize: null,
@@ -33,9 +33,11 @@ export default function DebugMenu({ openButton }: { openButton: React.ReactNode 
     fetchDatabaseInfo();
   }, []);
 
+  const OpenButton = openButton;
+
   return (
     <Dialog>
-      <DialogTrigger tabIndex={-1}>{openButton}</DialogTrigger>
+      <DialogTrigger tabIndex={-1} render={OpenButton}></DialogTrigger>
       <DialogContent className="min-w-1/2 min-h-1/2 flex flex-col">
         <DialogHeader className="">
           <DialogTitle className="text-xl">Debug</DialogTitle>

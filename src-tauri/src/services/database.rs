@@ -48,7 +48,7 @@ pub fn init_database(app_handle: &AppHandle) -> Result<(Connection, PathBuf)> {
         }
     }
 
-    println!("Database path: {}", &db_path.display());
+    //println!("Database path: {}", &db_path.display());
 
     Ok((conn, db_path))
 }

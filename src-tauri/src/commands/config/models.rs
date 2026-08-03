@@ -12,6 +12,8 @@ pub struct Config {
 #[serde(default)]
 pub struct SettingsConfig {
     pub theme: Theme,
+    #[serde(default)]
+    pub enable_debug_menu: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, Default)]
@@ -31,7 +33,10 @@ pub struct IndexingConfig {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            settings: SettingsConfig { theme: Theme::Dark },
+            settings: SettingsConfig {
+                theme: Theme::Dark,
+                enable_debug_menu: Some(true),
+            },
             indexing: IndexingConfig {
                 excluded_paths: vec!["C:\\Windows".into(), "C:\\Program Files".into()],
             },

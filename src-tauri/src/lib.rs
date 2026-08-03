@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use tauri::Manager;
 
 use crate::commands::{
-    config::config::{get_config, ConfigManager},
+    config::config::{get_config, save_config, ConfigManager},
     debug::{get_database_path, get_database_size},
 };
 use tauri_specta::{collect_commands, Builder};
@@ -24,6 +24,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             get_database_path,
             get_database_size,
             get_config,
+            save_config
         ])
         .dangerously_cast_bigints_to_number()
 }

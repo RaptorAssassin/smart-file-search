@@ -39,6 +39,22 @@ impl ConfigManager {
         })
     }
 
+    pub fn save_config(&self, config: Config) -> Result<()> {
+        *self.config.write().unwrap() = config.clone();
+
+        *self.blacklist.write().unwrap() = config
+            .indexing
+            .excluded_paths
+            .iter()
+            .map(PathBuf::from)
+            .collect();
+
+        let json = serde_json::to_string_pretty(&config)?;
+        fs::write(&self.config_path, json)?;
+
+        Ok(())
+    }
+
     pub fn get_config_path(app_handle: &AppHandle) -> Result<PathBuf> {
         let app_dir = app_handle.path().app_config_dir()?;
         let config_path = app_dir.join("config.json");
@@ -66,4 +82,12 @@ impl ConfigManager {
 #[specta::specta]
 pub fn get_config(state: tauri::State<AppState>) -> Config {
     state.config_manager.config.read().unwrap().clone()
+}
+#[tauri::command]
+#[specta::specta]
+pub fn save_config(state: tauri::State<AppState>, config: Config) -> Result<(), String> {
+    state
+        .config_manager
+        .save_config(config)
+        .map_err(|e| e.to_string())
 }
