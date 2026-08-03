@@ -11,6 +11,7 @@ import {
 } from './ui/select';
 import { applyTheme } from '@/lib/theme';
 import { useConfigStore } from '@/stores/config-stores';
+import { Checkbox } from './ui/checkbox';
 
 export default function SettingsMenu({ openButton }: { openButton: React.ReactElement }) {
   const config = useConfigStore((state) => state.config);
@@ -65,6 +66,30 @@ export default function SettingsMenu({ openButton }: { openButton: React.ReactEl
               </SelectGroup>
             </SelectContent>
           </Select>
+        </Field>
+        <Field orientation="horizontal">
+          <Checkbox
+            id="enable-debug-menu"
+            name="enable-debug-menu"
+            className="h-4 w-4"
+            checked={config?.settings?.enable_debug_menu ?? false}
+            onCheckedChange={(value) => {
+              if (!config) return;
+
+              const enableDebugMenu = value === true;
+
+              setConfig({
+                ...config,
+                settings: {
+                  ...(config.settings ?? {}),
+                  enable_debug_menu: enableDebugMenu,
+                },
+              });
+
+              void saveConfig();
+            }}
+          />
+          <FieldLabel htmlFor="enable-debug-menu">Enable Debug Menu</FieldLabel>
         </Field>
       </DialogContent>
     </Dialog>

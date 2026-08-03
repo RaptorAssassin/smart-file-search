@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { useEffect, useState } from 'react';
 import { formatBytes } from '@/lib/utils';
+import { useConfigStore } from '@/stores/config-stores';
 
 type DebugInfo = {
   databasePath: string | null;
@@ -34,6 +35,12 @@ export default function DebugMenu({ openButton }: { openButton: React.ReactEleme
   }, []);
 
   const OpenButton = openButton;
+
+  const config = useConfigStore((state) => state.config);
+
+  if (!config?.settings?.enable_debug_menu) {
+    return null;
+  }
 
   return (
     <Dialog>

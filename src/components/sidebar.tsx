@@ -9,21 +9,28 @@ export default function AppSidebar() {
     <Sidebar collapsible="none">
       <SidebarContent></SidebarContent>
       <SidebarFooter>
-        <SettingsMenu
-          openButton={
-            <Button>
-              <SettingsIcon />
-              Open Settings
-            </Button>
-          }
-        />
-        <DebugMenu
-          openButton={
-            <Button>
-              <BugIcon /> Open Debug Menu
-            </Button>
-          }
-        />
+        <div className="flex w-full items-center justify-center gap-2">
+          <div className="shrink-0">
+            <DebugMenu
+              openButton={
+                <Button>
+                  <BugIcon />
+                  {/* Open Debug Menu */}
+                </Button>
+              }
+            />
+          </div>
+          <div className="">
+            <SettingsMenu
+              openButton={
+                <Button>
+                  <SettingsIcon />
+                  Open Settings
+                </Button>
+              }
+            />
+          </div>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );
