@@ -52,14 +52,7 @@ function App() {
           <AppSidebar className="flex-1 min-w-50 max-w-80" />
           <main className="relative flex min-w-0 flex-3 flex-col overflow-hidden">
             <SearchBar />
-            <div className="w-full h-full">
-              <span className="text-accent">
-                Lorem ipsum dolor sit amet, consectetur adipisicing elit. Totam, ullam aspernatur!
-                Consectetur est placeat magni eos. Labore, atque optio harum est debitis doloremque
-                sequi, sint consectetur, quos ipsam veniam incidunt?
-              </span>
-              <Button className="bg-accent hover:bg-accent/80">Test Button</Button>
-            </div>
+            <div className="w-full h-full"></div>
           </main>
         </SidebarProvider>
       </TooltipProvider>

@@ -40,7 +40,7 @@ impl Default for Config {
                 enable_debug_menu: Some(true),
             },
             indexing: IndexingConfig {
-                excluded_paths: vec!["C:\\Windows".into(), "C:\\Program Files".into()],
+                excluded_paths: vec![],
             },
         }
     }

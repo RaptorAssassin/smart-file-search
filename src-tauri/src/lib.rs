@@ -4,9 +4,14 @@ mod services;
 use std::path::PathBuf;
 use tauri::Manager;
 
-use crate::commands::{
-    config::config::{get_config, save_config, ConfigManager},
-    debug::{get_database_path, get_database_size},
+use std::collections::HashSet;
+
+use crate::{
+    commands::{
+        config::config::{get_config, save_config, ConfigManager},
+        debug::{get_database_path, get_database_size},
+    },
+    services::indexer::build_blacklist,
 };
 use tauri_specta::{collect_commands, Builder};
 
@@ -16,6 +21,7 @@ use specta_typescript::Typescript;
 pub struct AppState {
     pub db_path: PathBuf,
     pub config_manager: ConfigManager,
+    pub blacklist: HashSet<PathBuf>,
 }
 
 fn specta_builder() -> Builder<tauri::Wry> {
@@ -50,6 +56,8 @@ pub fn run() {
 
             let config_manager = ConfigManager::load_config(app_handle)?;
 
+            let blacklist = build_blacklist(app)?;
+
             app.manage(services::database::DbState {
                 conn: std::sync::Mutex::new(conn),
             });
@@ -57,6 +65,7 @@ pub fn run() {
             app.manage(AppState {
                 db_path,
                 config_manager,
+                blacklist,
             });
 
             Ok(())
