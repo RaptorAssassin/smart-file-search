@@ -1,37 +1,28 @@
-import { Sidebar, SidebarContent, SidebarFooter } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
-import DebugMenu from './debug-menu';
-import SettingsMenu from './settings-menu';
-import { BugIcon, SettingsIcon } from 'lucide-react';
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar'
+import DebugMenu from './debug-menu'
+import SettingsMenu from './settings-menu'
+import { FileSearchCorner } from 'lucide-react'
 
-export default function AppSidebar() {
+export default function AppSidebar({ className }: { className?: string }) {
   return (
-    <Sidebar collapsible="none">
+    <Sidebar collapsible="none" className={className}>
+      <SidebarHeader>
+        <div className="flex gap-2 items-center justify-center text-accent select-none">
+          <FileSearchCorner className="text-2xl size-6 shrink-0" />
+          <span className="text-2xl font-bold">Smart File Search</span>
+        </div>
+      </SidebarHeader>
       <SidebarContent></SidebarContent>
       <SidebarFooter>
-        <div className="flex w-full items-center justify-center gap-2">
+        <div className="flex w-full flex-col items-center justify-center gap-2">
           <div className="shrink-0">
-            <DebugMenu
-              openButton={
-                <Button>
-                  <BugIcon />
-                  {/* Open Debug Menu */}
-                </Button>
-              }
-            />
+            <DebugMenu />
           </div>
           <div className="">
-            <SettingsMenu
-              openButton={
-                <Button>
-                  <SettingsIcon />
-                  Open Settings
-                </Button>
-              }
-            />
+            <SettingsMenu />
           </div>
         </div>
       </SidebarFooter>
     </Sidebar>
-  );
+  )
 }

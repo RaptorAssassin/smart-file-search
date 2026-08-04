@@ -22,6 +22,7 @@ export type IndexingConfig = {
 
 export type SettingsConfig = {
 	theme?: Theme,
+	disable_keyboard_shortcut_hints?: boolean | null,
 	enable_debug_menu?: boolean | null,
 };
 

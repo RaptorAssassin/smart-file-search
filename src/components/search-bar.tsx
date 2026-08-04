@@ -1,45 +1,53 @@
-import { useEffect, useState, useRef } from 'react';
-import { Input } from './ui/input';
-import { Button } from './ui/button';
-import { SearchIcon, XIcon } from 'lucide-react';
-import { InputGroup, InputGroupAddon, InputGroupInput } from './ui/input-group';
-import { Kbd, KbdGroup } from './ui/kbd';
+import { useEffect, useState, useRef } from 'react'
+import { Button } from './ui/button'
+import { SearchIcon, XIcon } from 'lucide-react'
+import { InputGroup, InputGroupAddon, InputGroupInput } from './ui/input-group'
+import { Kbd, KbdGroup } from './ui/kbd'
+import { useUIStore } from '@/stores/ui-store'
+import KeyboardShortcut from './keyboard-shortcut'
 
 export default function SearchBar() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [focused, setFocused] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const setSearchBarFocused = useUIStore((state) => state.setSearchBarFocused)
 
   const handleSearchQueryChange = (query: string) => {
-    setSearchQuery(query);
-    if (query.trim() === '') return;
-    console.log('Search query changed:', query);
-  };
+    setSearchQuery(query)
+    if (query.trim() === '') return
+  }
 
-  // Focus search bar when Ctrl + K is pressed
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+
+  // Focus search bar when Ctrl/Cmd+K is pressed and blur on Escape
   useEffect(() => {
-    console.log(inputRef.current);
-
     const handleKeyDown = (e: KeyboardEvent) => {
-      const modifierPressed = isMac ? e.metaKey : e.ctrlKey;
+      const modifierPressed = isMac ? e.metaKey : e.ctrlKey
 
       if (modifierPressed && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
+        e.preventDefault()
 
-        inputRef.current?.focus();
-        inputRef.current?.select();
+        inputRef.current?.focus()
+        inputRef.current?.select()
+        return
       }
-    };
-    window.addEventListener('keydown', handleKeyDown);
 
-    inputRef.current?.focus();
+      if (e.key === 'Escape' || e.key === 'Esc') {
+        if (document.activeElement === inputRef.current) {
+          inputRef.current?.blur()
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    inputRef.current?.focus()
+    setSearchBarFocused(true)
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, []);
-
-  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isMac, setSearchBarFocused])
 
   return (
     <div className="p-4">
@@ -48,11 +56,11 @@ export default function SearchBar() {
           <InputGroupInput
             type="text"
             placeholder="Search for a file..."
-            className="h-full w-full border-none bg-transparent p-2 focus:border-none focus:outline-none transition-shadow transition-duration-100 "
+            className="h-full w-full border-none bg-transparent p-2 focus:border-none focus:outline-none transition-shadow transition-duration-100"
             value={searchQuery}
             onChange={(e) => handleSearchQueryChange(e.target.value)}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
+            onFocus={() => setSearchBarFocused(true)}
+            onBlur={() => setSearchBarFocused(false)}
 
             ref={inputRef}
             autoComplete="off"
@@ -75,14 +83,11 @@ export default function SearchBar() {
                 </Button>
               </div>
             ) : (
-              <KbdGroup>
-                <Kbd>{isMac ? '⌘' : 'Ctrl'}</Kbd>
-                <Kbd>K</Kbd>
-              </KbdGroup>
+              <KeyboardShortcut identifier="search" />
             )}
           </InputGroupAddon>
         </InputGroup>
       </div>
     </div>
-  );
+  )
 }

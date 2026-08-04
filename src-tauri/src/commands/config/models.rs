@@ -12,6 +12,7 @@ pub struct Config {
 #[serde(default)]
 pub struct SettingsConfig {
     pub theme: Theme,
+    pub disable_keyboard_shortcut_hints: Option<bool>,
     #[serde(default)]
     pub enable_debug_menu: Option<bool>,
 }
@@ -34,7 +35,8 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             settings: SettingsConfig {
-                theme: Theme::Dark,
+                theme: Theme::System,
+                disable_keyboard_shortcut_hints: Some(false),
                 enable_debug_menu: Some(true),
             },
             indexing: IndexingConfig {
