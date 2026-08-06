@@ -1,0 +1,45 @@
+[
+  // Windows
+  "/Windows",
+  "/Windows/System32",
+  "/$Recycle.Bin",
+  "/Program Files",
+  "/Program Files (x86)",
+  "/ProgramData",
+  "/Drivers",
+  "/XboxGames",
+  "/System Volume Information",
+  "/pagefile.sys",
+  "/hiberfil.sys",
+  "/swapfile.sys",
+  "/Users/**/AppData/Local/Temp",
+
+  // macOS
+  "/System",
+  "/Volumes",
+  "/.Trashes",
+  "/private/var",
+
+  // Linux
+  "/proc",
+  "/sys",
+  "/dev",
+  "/tmp",
+  "/run",
+  "/mnt",
+  "/media",
+
+  "$RECYCLE.BIN",
+
+  // Common directories to ignore
+
+  // Development and build directories
+  "node_modules",
+  ".git",
+  ".venv",
+  "target/",
+  ".next/",
+
+  // Games
+  "/Games"
+]

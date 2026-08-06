@@ -34,7 +34,7 @@
       "icons/icon.ico"
     ],
     "resources": [
-      "data/blacklist.json"
+      "data/blacklist.json5"
     ]
   },
   "plugins": {}

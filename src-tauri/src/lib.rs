@@ -11,7 +11,10 @@ use crate::{
         config::config::{get_config, save_config, ConfigManager},
         debug::{get_database_path, get_database_size},
     },
-    services::indexer::build_blacklist,
+    services::indexer::{
+        blacklist::{build_blacklist, should_skip_path},
+        indexer::start_indexing,
+    },
 };
 use tauri_specta::{collect_commands, Builder};
 
@@ -30,7 +33,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
             get_database_path,
             get_database_size,
             get_config,
-            save_config
+            save_config,
+            start_indexing,
         ])
         .dangerously_cast_bigints_to_number()
 }
@@ -56,7 +60,16 @@ pub fn run() {
 
             let config_manager = ConfigManager::load_config(app_handle)?;
 
-            let blacklist = build_blacklist(app)?;
+            let excluded_paths = config_manager
+                .config
+                .read()
+                .unwrap()
+                .indexing
+                .excluded_paths
+                .clone();
+            let blacklist = build_blacklist(app_handle, excluded_paths)?;
+
+            start_indexing(blacklist.clone())?;
 
             app.manage(services::database::DbState {
                 conn: std::sync::Mutex::new(conn),

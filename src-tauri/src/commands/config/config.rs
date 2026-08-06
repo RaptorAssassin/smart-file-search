@@ -11,9 +11,9 @@ use crate::commands::config::models::Config;
 use crate::AppState;
 
 pub struct ConfigManager {
-    config: RwLock<Config>,
-    blacklist: RwLock<HashSet<PathBuf>>,
-    config_path: PathBuf,
+    pub config: RwLock<Config>,
+    pub blacklist: RwLock<HashSet<PathBuf>>,
+    pub config_path: PathBuf,
 }
 
 impl ConfigManager {

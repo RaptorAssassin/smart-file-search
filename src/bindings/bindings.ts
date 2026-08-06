@@ -8,6 +8,7 @@ export const commands = {
 	getDatabaseSize: () => typedError<number, string>(__TAURI_INVOKE("get_database_size")),
 	getConfig: () => __TAURI_INVOKE<Config>("get_config"),
 	saveConfig: (config: Config) => typedError<null, string>(__TAURI_INVOKE("save_config", { config })),
+	startIndexing: (blacklist: string[]) => typedError<null, string>(__TAURI_INVOKE("start_indexing", { blacklist })),
 };
 
 /* Types */
