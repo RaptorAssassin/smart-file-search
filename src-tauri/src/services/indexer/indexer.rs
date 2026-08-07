@@ -2,8 +2,12 @@ use super::blacklist::should_skip_path;
 use ignore::{WalkBuilder, WalkState};
 use std::collections::HashSet;
 use std::path::PathBuf;
-use std::result;
 use tokio::sync::mpsc;
+
+use crate::services::indexer::processing::process_file;
+
+#[cfg(unix)]
+use std::os::unix::fs::MetadataExt;
 
 pub fn traverse_system(root: PathBuf, blacklist: HashSet<PathBuf>, tx: mpsc::Sender<PathBuf>) {
     // Arc is used to share the blacklist across threads without needing to clone it for each entry
@@ -43,7 +47,10 @@ pub fn traverse_system(root: PathBuf, blacklist: HashSet<PathBuf>, tx: mpsc::Sen
 
 #[tauri::command]
 #[specta::specta]
-pub fn start_indexing(blacklist: HashSet<PathBuf>) -> Result<(), String> {
+pub fn start_indexing(
+    app_handle: tauri::AppHandle,
+    blacklist: HashSet<PathBuf>,
+) -> Result<(), String> {
     let (tx, mut rx) = tokio::sync::mpsc::channel::<PathBuf>(1000);
 
     let root_path = PathBuf::from("/");
@@ -54,13 +61,9 @@ pub fn start_indexing(blacklist: HashSet<PathBuf>) -> Result<(), String> {
 
     tauri::async_runtime::spawn(async move {
         while let Some(file_path) = rx.recv().await {
-            process_file(&file_path).await;
+            process_file(&app_handle, &file_path).await;
         }
     });
 
     Ok(())
-}
-
-pub async fn process_file(file_path: &PathBuf) {
-    println!("Processing file: {:?}", file_path);
 }

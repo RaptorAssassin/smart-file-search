@@ -11,10 +11,7 @@ use crate::{
         config::config::{get_config, save_config, ConfigManager},
         debug::{get_database_path, get_database_size},
     },
-    services::indexer::{
-        blacklist::{build_blacklist, should_skip_path},
-        indexer::start_indexing,
-    },
+    services::indexer::{blacklist::build_blacklist, indexer::start_indexing},
 };
 use tauri_specta::{collect_commands, Builder};
 
@@ -69,7 +66,7 @@ pub fn run() {
                 .clone();
             let blacklist = build_blacklist(app_handle, excluded_paths)?;
 
-            start_indexing(blacklist.clone())?;
+            start_indexing(app_handle.clone(), blacklist.clone())?;
 
             app.manage(services::database::DbState {
                 conn: std::sync::Mutex::new(conn),
