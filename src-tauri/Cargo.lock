@@ -3843,6 +3843,7 @@ dependencies = [
  "anyhow",
  "blake3",
  "chrono",
+ "globset",
  "ignore",
  "json5",
  "mime_guess",

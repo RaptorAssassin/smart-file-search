@@ -8,11 +8,12 @@ use tauri::AppHandle;
 use tauri::Manager;
 
 use crate::commands::config::models::Config;
+use crate::services::indexer::blacklist::BlacklistConfig;
 use crate::AppState;
 
 pub struct ConfigManager {
     pub config: RwLock<Config>,
-    pub blacklist: RwLock<HashSet<PathBuf>>,
+    pub blacklist: RwLock<BlacklistConfig>,
     pub config_path: PathBuf,
 }
 
@@ -34,7 +35,7 @@ impl ConfigManager {
 
         Ok(Self {
             config: RwLock::new(config),
-            blacklist: RwLock::new(blacklist),
+            blacklist:  ,
             config_path,
         })
     }

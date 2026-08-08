@@ -1,45 +1,65 @@
-[
-  // Windows
-  "/Windows",
-  "/Windows/System32",
-  "/$Recycle.Bin",
-  "/Program Files",
-  "/Program Files (x86)",
-  "/ProgramData",
-  "/Drivers",
-  "/XboxGames",
-  "/System Volume Information",
-  "/pagefile.sys",
-  "/hiberfil.sys",
-  "/swapfile.sys",
-  "/Users/**/AppData/Local/Temp",
+{
+    folder_names: [
+        "node_modules",
+        ".git",
+        "target",
+        "build",
+        ".next",
+        ".venv",
+        "dist",
+        "out",
+        "bin",
+        "obj",
+        "temp",
+        "__pycache__",
+        "$RECYCLE.BIN",
 
-  // macOS
-  "/System",
-  "/Volumes",
-  "/.Trashes",
-  "/private/var",
+        // Windows
+        "Windows",
+        "Program Files",
+        "Program Files (x86)",
+        "ProgramData",
+        "Drivers",
+        "XboxGames",
+        "System Volume Information",
+        "AppData",
 
-  // Linux
-  "/proc",
-  "/sys",
-  "/dev",
-  "/tmp",
-  "/run",
-  "/mnt",
-  "/media",
+        // macOS
+        "System",
+        "Volumes",
+        ".Trashes",
+        "private/var",
 
-  "$RECYCLE.BIN",
-
-  // Common directories to ignore
-
-  // Development and build directories
-  "node_modules",
-  ".git",
-  ".venv",
-  "target/",
-  ".next/",
-
-  // Games
-  "/Games"
-]
+        // Linux
+        "proc",
+        "sys",
+        "dev",
+        "tmp",
+        "run",
+        "mnt",
+        "media",
+    ],
+    extensions: [
+        "tmp",
+        "log",
+        "bak",
+        "swp",
+        "iso",
+        "dmg",
+        "exe",
+        "log",
+        "dll",
+        "so",
+    ],
+    path_patterns: [
+        "**/AppData/Local/Temp/**",
+        "**/Library/Caches/**",
+        "/proc/**",
+        "/sys/**",
+        "/dev/**",
+        "/run/**",
+        "/tmp/**",
+        "C:/Windows/**",
+        "C:/$Recycle.Bin/**"
+    ]
+}

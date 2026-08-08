@@ -42,3 +42,6 @@ tokio = { version = "1", features = ["full"] }
 chrono = { version = "0.4", features = ["serde"] }
 mime_guess = "2.0"
 blake3 = "1.5"
+
+# Blacklist and pattern matching
+globset = "0.4"

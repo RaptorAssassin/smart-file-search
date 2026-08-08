@@ -28,7 +28,9 @@ pub enum Theme {
 #[derive(Debug, Clone, Serialize, Deserialize, Type, Default)]
 #[serde(default)]
 pub struct IndexingConfig {
-    pub excluded_paths: Vec<String>,
+    pub excluded_folders: Vec<String>,
+    pub excluded_extensions: Vec<String>,
+    pub excluded_path_patterns: Vec<String>,
 }
 
 impl Default for Config {
@@ -40,7 +42,9 @@ impl Default for Config {
                 enable_debug_menu: Some(true),
             },
             indexing: IndexingConfig {
-                excluded_paths: vec![],
+                excluded_folders: vec![],
+                excluded_extensions: vec![],
+                excluded_path_patterns: vec![],
             },
         }
     }

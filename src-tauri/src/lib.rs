@@ -11,7 +11,10 @@ use crate::{
         config::config::{get_config, save_config, ConfigManager},
         debug::{get_database_path, get_database_size},
     },
-    services::indexer::{blacklist::build_blacklist, indexer::start_indexing},
+    services::indexer::{
+        blacklist::{build_blacklist, Blacklist},
+        indexer::start_indexing,
+    },
 };
 use tauri_specta::{collect_commands, Builder};
 
@@ -21,7 +24,7 @@ use specta_typescript::Typescript;
 pub struct AppState {
     pub db_path: PathBuf,
     pub config_manager: ConfigManager,
-    pub blacklist: HashSet<PathBuf>,
+    pub blacklist: Blacklist,
 }
 
 fn specta_builder() -> Builder<tauri::Wry> {
@@ -57,14 +60,35 @@ pub fn run() {
 
             let config_manager = ConfigManager::load_config(app_handle)?;
 
-            let excluded_paths = config_manager
+            let excluded_folders = config_manager
                 .config
                 .read()
                 .unwrap()
                 .indexing
-                .excluded_paths
+                .excluded_folders
                 .clone();
-            let blacklist = build_blacklist(app_handle, excluded_paths)?;
+
+            let excluded_extensions = config_manager
+                .config
+                .read()
+                .unwrap()
+                .indexing
+                .excluded_extensions
+                .clone();
+            let excluded_path_patterns = config_manager
+                .config
+                .read()
+                .unwrap()
+                .indexing
+                .excluded_path_patterns
+                .clone();
+
+            let blacklist = Blacklist::new(
+                app_handle,
+                excluded_folders,
+                excluded_extensions,
+                excluded_path_patterns,
+            )?;
 
             start_indexing(app_handle.clone(), blacklist.clone())?;
 

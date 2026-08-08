@@ -83,7 +83,7 @@ pub async fn process_file(app_handle: &AppHandle, path: &PathBuf) -> Result<(), 
         INSERT INTO files (file_path, file_name, file_hash, extension, file_size, inode, mime_type, created_at, modified_at, indexed_at)
         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)", params![file_data.file_path, file_data.file_name, file_data.file_hash, file_data.extension, file_data.file_size, file_data.inode, file_data.mime_type, file_data.created_at, file_data.modified_at, file_data.indexed_at]).map_err(|e| e.to_string())?;
 
-    println!("Inserted file data into database: {:?}", file_data);
+    println!("Inserted file data into database: {:#?}", file_data);
     Ok(())
 }
 

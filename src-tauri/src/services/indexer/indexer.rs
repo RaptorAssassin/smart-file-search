@@ -4,12 +4,13 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use tokio::sync::mpsc;
 
+use crate::services::indexer::blacklist::Blacklist;
 use crate::services::indexer::processing::process_file;
 
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
 
-pub fn traverse_system(root: PathBuf, blacklist: HashSet<PathBuf>, tx: mpsc::Sender<PathBuf>) {
+pub fn traverse_system(root: PathBuf, blacklist: Blacklist, tx: mpsc::Sender<PathBuf>) {
     // Arc is used to share the blacklist across threads without needing to clone it for each entry
     let shared_blacklist = std::sync::Arc::new(blacklist);
 
@@ -47,10 +48,7 @@ pub fn traverse_system(root: PathBuf, blacklist: HashSet<PathBuf>, tx: mpsc::Sen
 
 #[tauri::command]
 #[specta::specta]
-pub fn start_indexing(
-    app_handle: tauri::AppHandle,
-    blacklist: HashSet<PathBuf>,
-) -> Result<(), String> {
+pub fn start_indexing(app_handle: tauri::AppHandle, blacklist: Blacklist) -> Result<(), String> {
     let (tx, mut rx) = tokio::sync::mpsc::channel::<PathBuf>(1000);
 
     let root_path = PathBuf::from("/");
