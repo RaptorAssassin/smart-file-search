@@ -16,3 +16,15 @@ export function formatBytes(bytes: number, decimals = 2): string {
 
   return `${parseFloat(value.toFixed(decimals))} ${sizes[index]}`
 }
+
+export async function copyToClipboard(text: string): Promise<boolean> {
+  if (navigator?.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch (err) {
+      console.error('Failed to copy text via Clipboard API:', err)
+    }
+  }
+  return false
+}

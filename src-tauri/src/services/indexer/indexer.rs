@@ -1,18 +1,18 @@
 use super::blacklist::should_skip_path;
+use crate::services::indexer::blacklist::Blacklist;
 use ignore::{WalkBuilder, WalkState};
-use std::collections::HashSet;
 use std::path::PathBuf;
+use std::sync::Arc;
 use tokio::sync::mpsc;
 
-use crate::services::indexer::blacklist::Blacklist;
 use crate::services::indexer::processing::process_file;
 
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
 
-pub fn traverse_system(root: PathBuf, blacklist: Blacklist, tx: mpsc::Sender<PathBuf>) {
+pub fn traverse_system(root: PathBuf, blacklist: Arc<Blacklist>, tx: mpsc::Sender<PathBuf>) {
     // Arc is used to share the blacklist across threads without needing to clone it for each entry
-    let shared_blacklist = std::sync::Arc::new(blacklist);
+    let filter_blacklist = Arc::clone(&blacklist);
 
     let walker = WalkBuilder::new(root)
         .threads(std::thread::available_parallelism().unwrap().get())
@@ -20,15 +20,16 @@ pub fn traverse_system(root: PathBuf, blacklist: Blacklist, tx: mpsc::Sender<Pat
         .git_ignore(false)
         .same_file_system(true)
         // Skip blacklisted directories
-        .filter_entry({
-            let blacklist = shared_blacklist.clone();
-            move |entry| !should_skip_path(&entry.path().to_path_buf(), &blacklist)
+        .filter_entry(move |entry| {
+            !should_skip_path(&entry.path().to_path_buf(), &filter_blacklist)
         })
         .build_parallel();
 
+    let blacklist = Arc::clone(&blacklist);
+
     walker.run(|| {
         let tx = tx.clone();
-        let blacklist = shared_blacklist.clone();
+        let blacklist = Arc::clone(&blacklist);
 
         Box::new(move |result| {
             if let Ok(entry) = result {
@@ -46,12 +47,14 @@ pub fn traverse_system(root: PathBuf, blacklist: Blacklist, tx: mpsc::Sender<Pat
     });
 }
 
-#[tauri::command]
-#[specta::specta]
-pub fn start_indexing(app_handle: tauri::AppHandle, blacklist: Blacklist) -> Result<(), String> {
+pub fn start_indexing(
+    app_handle: tauri::AppHandle,
+    blacklist: Arc<Blacklist>,
+) -> Result<(), String> {
     let (tx, mut rx) = tokio::sync::mpsc::channel::<PathBuf>(1000);
 
     let root_path = PathBuf::from("/");
+    let blacklist = Arc::clone(&blacklist);
 
     tauri::async_runtime::spawn(async move {
         traverse_system(root_path, blacklist, tx);
@@ -59,7 +62,9 @@ pub fn start_indexing(app_handle: tauri::AppHandle, blacklist: Blacklist) -> Res
 
     tauri::async_runtime::spawn(async move {
         while let Some(file_path) = rx.recv().await {
-            process_file(&app_handle, &file_path).await;
+            if let Err(err) = process_file(&app_handle, &file_path).await {
+                eprintln!("Failed to process file {:?}: {}", file_path, err);
+            }
         }
     });
 

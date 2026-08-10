@@ -2,19 +2,15 @@ mod commands;
 mod services;
 
 use std::path::PathBuf;
+use std::sync::Arc;
 use tauri::Manager;
-
-use std::collections::HashSet;
 
 use crate::{
     commands::{
         config::config::{get_config, save_config, ConfigManager},
         debug::{get_database_path, get_database_size},
     },
-    services::indexer::{
-        blacklist::{build_blacklist, Blacklist},
-        indexer::start_indexing,
-    },
+    services::indexer::{blacklist::Blacklist, indexer::start_indexing},
 };
 use tauri_specta::{collect_commands, Builder};
 
@@ -24,7 +20,7 @@ use specta_typescript::Typescript;
 pub struct AppState {
     pub db_path: PathBuf,
     pub config_manager: ConfigManager,
-    pub blacklist: Blacklist,
+    pub blacklist: Arc<Blacklist>,
 }
 
 fn specta_builder() -> Builder<tauri::Wry> {
@@ -34,7 +30,6 @@ fn specta_builder() -> Builder<tauri::Wry> {
             get_database_size,
             get_config,
             save_config,
-            start_indexing,
         ])
         .dangerously_cast_bigints_to_number()
 }
@@ -60,37 +55,10 @@ pub fn run() {
 
             let config_manager = ConfigManager::load_config(app_handle)?;
 
-            let excluded_folders = config_manager
-                .config
-                .read()
-                .unwrap()
-                .indexing
-                .excluded_folders
-                .clone();
+            let blacklist_config = config_manager.blacklist.read().unwrap().clone();
+            let blacklist = Arc::new(Blacklist::new(app_handle, blacklist_config.clone())?);
 
-            let excluded_extensions = config_manager
-                .config
-                .read()
-                .unwrap()
-                .indexing
-                .excluded_extensions
-                .clone();
-            let excluded_path_patterns = config_manager
-                .config
-                .read()
-                .unwrap()
-                .indexing
-                .excluded_path_patterns
-                .clone();
-
-            let blacklist = Blacklist::new(
-                app_handle,
-                excluded_folders,
-                excluded_extensions,
-                excluded_path_patterns,
-            )?;
-
-            start_indexing(app_handle.clone(), blacklist.clone())?;
+            start_indexing(app_handle.clone(), Arc::clone(&blacklist))?;
 
             app.manage(services::database::DbState {
                 conn: std::sync::Mutex::new(conn),

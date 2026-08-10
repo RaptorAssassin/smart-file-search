@@ -1,6 +1,6 @@
 use crate::services::database::DbContent;
 use chrono::{DateTime, Utc};
-use rusqlite::{params, Connection, Result};
+use rusqlite::{params, Result};
 use std::fs::{self, File};
 use std::io::Read;
 use std::path::PathBuf;

@@ -1,100 +1,103 @@
-use blake3::hazmat::Mode::Hash;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::collections::HashSet;
-use std::error::Error;
 use std::path::Path;
 use std::path::PathBuf;
 use tauri::path::BaseDirectory;
-use tauri::App;
 use tauri::{AppHandle, Manager};
 
-#[derive(Debug, Deserialize, Clone, Type)]
+#[derive(Debug, Deserialize, Serialize, Clone, Type)]
 pub struct BlacklistConfig {
     pub excluded_folders: Vec<String>,
     pub excluded_extensions: Vec<String>,
     pub excluded_path_patterns: Vec<String>,
 }
 
-#[derive(Debug, Deserialize, Clone, Type)]
+#[derive(Deserialize, Debug)]
+pub struct BlacklistJson {
+    pub folder_names: Vec<String>,
+    pub extensions: Vec<String>,
+    pub path_patterns: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
 pub struct Blacklist {
     folder_names: HashSet<String>,
     extensions: HashSet<String>,
-    path_patterns: HashSet<String>,
+    path_patterns: globset::GlobSet,
 }
 
 impl Blacklist {
+    /// Builds a new Blacklist by merging the hardcoded blacklist from the JSON file with the custom user configuration.
     pub fn new(
         app: &AppHandle,
-        excluded_folders: Vec<String>,
-        excluded_extensions: Vec<String>,
-        excluded_path_patterns: Vec<String>,
+        config: BlacklistConfig,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        // Load hardcoded blacklist from data/blacklist.json
         let resource_path = app
             .path()
             .resolve(Path::new("data/blacklist.json5"), BaseDirectory::Resource)?;
 
         let json_content = std::fs::read_to_string(&resource_path)?;
-        let raw_paths: HashSet<String> = json5::from_str(&json_content)?;
+        let json_config: BlacklistJson = json5::from_str(&json_content)?;
 
-        let mut excluded_folders: HashSet<String> = excluded_folders.into_iter().collect();
-        let mut excluded_extensions: HashSet<String> = excluded_extensions.into_iter().collect();
-        let mut excluded_path_patterns: HashSet<String> =
-            excluded_path_patterns.into_iter().collect();
+        let folder_names: HashSet<String> = json_config
+            .folder_names
+            .into_iter()
+            .chain(config.excluded_folders)
+            .collect();
 
-        // Load user-defined blacklist from config
-        excluded_folders.extend(
-            raw_paths
-                .iter()
-                .filter(|path| Path::new(path).is_dir())
-                .cloned(),
-        );
-        excluded_extensions.extend(
-            raw_paths
-                .iter()
-                .filter(|path| Path::new(path).is_file())
-                .map(|path| {
-                    Path::new(path)
-                        .extension()
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .to_string()
-                })
-                .collect::<HashSet<String>>(),
-        );
-        excluded_path_patterns.extend(
-            raw_paths
-                .iter()
-                .filter(|path| Path::new(path).is_file())
-                .cloned(),
-        );
+        let extensions: HashSet<String> = json_config
+            .extensions
+            .into_iter()
+            .map(|ext| ext.trim_start_matches('.').to_lowercase())
+            .chain(
+                config
+                    .excluded_extensions
+                    .into_iter()
+                    .map(|e| e.trim_start_matches('.').to_lowercase()),
+            )
+            .collect();
+
+        let path_patterns: HashSet<String> = json_config
+            .path_patterns
+            .into_iter()
+            .chain(config.excluded_path_patterns)
+            .collect();
+
+        let mut glob_builder = globset::GlobSetBuilder::new();
+        for pattern in &path_patterns {
+            let normalized = pattern.replace('\\', "/");
+            if let Ok(glob) = globset::Glob::new(&normalized) {
+                glob_builder.add(glob);
+            }
+        }
+
+        let compiled_path_patterns = glob_builder.build()?;
 
         Ok(Blacklist {
-            folder_names: excluded_folders,
-            extensions: excluded_extensions,
-            path_patterns: excluded_path_patterns,
+            folder_names,
+            extensions,
+            path_patterns: compiled_path_patterns,
         })
+    }
+
+    pub fn should_skip_path(&self, path: &PathBuf) -> bool {
+        // Extension
+        if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+            if self.extensions.contains(&ext.to_lowercase()) {
+                return true;
+            }
+        }
+
+        // Folder Name
+
+        // Glob Pattern
+
+        false
     }
 }
 
-pub fn build_blacklist(app: &AppHandle) -> Result<Blacklist, Box<dyn Error>> {
-    // Load hardcoded blacklist from data/blacklist.json
-    let resource_path = app
-        .path()
-        .resolve(Path::new("data/blacklist.json5"), BaseDirectory::Resource)?;
-
-    Ok(Blacklist::new(app, vec![], vec![], vec![])?)
-}
-
-pub fn should_skip_path(
-    path: &PathBuf,
-    //app_handle: &AppHandle,
-    blacklist: &Blacklist,
-) -> bool {
-    // let app_state = app_handle.state::<crate::AppState>();
-    // let blacklist = &app_state.blacklist;
-
+pub fn should_skip_path(path: &PathBuf, blacklist: &Blacklist) -> bool {
     if path.is_dir() {
         for component in path.components() {
             if let Some(name) = component.as_os_str().to_str() {
@@ -116,16 +119,9 @@ pub fn should_skip_path(
         return true;
     }
 
-    for pattern in &blacklist.path_patterns {
-        if let Ok(glob_pattern) = glob::Pattern::new(pattern) {
-            if glob_pattern.matches_path(path) {
-                println!(
-                    "Skipping blacklisted path pattern: {:?} matches {:?}",
-                    path, pattern
-                );
-                return true;
-            }
-        }
+    if blacklist.path_patterns.is_match(path) {
+        println!("Skipping blacklisted path pattern: {:?}", path);
+        return true;
     }
 
     println!("Path is not blacklisted: {:?}", path);

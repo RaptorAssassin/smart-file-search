@@ -1,5 +1,4 @@
 use anyhow::Result;
-use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -25,17 +24,15 @@ impl ConfigManager {
 
         let config = Self::read_config(&config_path)?;
 
-        // Save blacklisted paths to a HashSet
-        let blacklist = config
-            .indexing
-            .excluded_paths
-            .iter()
-            .map(PathBuf::from)
-            .collect::<HashSet<_>>();
+        let blacklist = BlacklistConfig {
+            excluded_folders: config.indexing.excluded_folders.clone(),
+            excluded_extensions: config.indexing.excluded_extensions.clone(),
+            excluded_path_patterns: config.indexing.excluded_path_patterns.clone(),
+        };
 
         Ok(Self {
             config: RwLock::new(config),
-            blacklist:  ,
+            blacklist: RwLock::new(blacklist),
             config_path,
         })
     }
@@ -43,12 +40,11 @@ impl ConfigManager {
     pub fn save_config(&self, config: Config) -> Result<()> {
         *self.config.write().unwrap() = config.clone();
 
-        *self.blacklist.write().unwrap() = config
-            .indexing
-            .excluded_paths
-            .iter()
-            .map(PathBuf::from)
-            .collect();
+        *self.blacklist.write().unwrap() = BlacklistConfig {
+            excluded_folders: config.indexing.excluded_folders.clone(),
+            excluded_extensions: config.indexing.excluded_extensions.clone(),
+            excluded_path_patterns: config.indexing.excluded_path_patterns.clone(),
+        };
 
         let json = serde_json::to_string_pretty(&config)?;
         fs::write(&self.config_path, json)?;

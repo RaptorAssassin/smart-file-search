@@ -7,12 +7,12 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { useEffect, useState } from 'react'
-import { formatBytes } from '@/lib/utils'
+import { copyToClipboard, formatBytes } from '@/lib/utils'
 import { useConfigStore } from '@/stores/config-store'
 import { Field, FieldContent, FieldLabel } from './ui/field'
 import { useUIStore } from '@/stores/ui-store'
 import { Button } from './ui/button'
-import { BugIcon } from 'lucide-react'
+import { BugIcon, CopyIcon } from 'lucide-react'
 import KeyboardShortcut from './keyboard-shortcut'
 
 type DebugInfo = {
@@ -63,6 +63,7 @@ export default function DebugMenu() {
         <DialogHeader>
           <DialogTitle>Debug</DialogTitle>
         </DialogHeader>
+
         <Field>
           <FieldLabel>Database Path</FieldLabel>
           {debugInfo.databasePath}
@@ -70,6 +71,18 @@ export default function DebugMenu() {
         <Field>
           <FieldLabel>Database Size</FieldLabel>
           {formatBytes(debugInfo.databaseSize ?? 0)}
+        </Field>
+
+        <Field>
+          <FieldLabel className="flex gap-2">
+            Config{' '}
+            <Button onClick={() => copyToClipboard(JSON.stringify(config, null, 2))} size="icon-xs">
+              <CopyIcon />
+            </Button>
+          </FieldLabel>
+          <pre className="border-border border-2 p-2 rounded-(--radius)">
+            <code>{JSON.stringify(config, null, 2)}</code>
+          </pre>
         </Field>
       </DialogContent>
     </Dialog>

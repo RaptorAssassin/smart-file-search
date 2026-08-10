@@ -8,7 +8,6 @@ export const commands = {
 	getDatabaseSize: () => typedError<number, string>(__TAURI_INVOKE("get_database_size")),
 	getConfig: () => __TAURI_INVOKE<Config>("get_config"),
 	saveConfig: (config: Config) => typedError<null, string>(__TAURI_INVOKE("save_config", { config })),
-	startIndexing: (blacklist: string[]) => typedError<null, string>(__TAURI_INVOKE("start_indexing", { blacklist })),
 };
 
 /* Types */
@@ -18,7 +17,9 @@ export type Config = {
 };
 
 export type IndexingConfig = {
-	excluded_paths?: string[],
+	excluded_folders?: string[],
+	excluded_extensions?: string[],
+	excluded_path_patterns?: string[],
 };
 
 export type SettingsConfig = {

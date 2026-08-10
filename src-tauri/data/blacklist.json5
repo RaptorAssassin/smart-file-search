@@ -15,20 +15,11 @@
         "$RECYCLE.BIN",
 
         // Windows
-        "Windows",
-        "Program Files",
-        "Program Files (x86)",
-        "ProgramData",
-        "Drivers",
-        "XboxGames",
-        "System Volume Information",
-        "AppData",
 
         // macOS
         "System",
         "Volumes",
         ".Trashes",
-        "private/var",
 
         // Linux
         "proc",
@@ -47,11 +38,18 @@
         "iso",
         "dmg",
         "exe",
-        "log",
         "dll",
         "so",
     ],
     path_patterns: [
+        // Windows
+        "C:/Program Files/**",
+        "C:/Program Files (x86)/**",
+        "C:/ProgramData/**",
+        "C:/Drivers/**",
+        "C:/XboxGames/**",
+        "C:/System Volume Information/**",
+        "C:/Users/**/AppData/**",
         "**/AppData/Local/Temp/**",
         "**/Library/Caches/**",
         "/proc/**",
@@ -60,6 +58,7 @@
         "/run/**",
         "/tmp/**",
         "C:/Windows/**",
-        "C:/$Recycle.Bin/**"
+        "C:/$Recycle.Bin/**",
+        "**/private/var/**",
     ]
 }
