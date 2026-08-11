@@ -1,4 +1,3 @@
-use super::blacklist::should_skip_path;
 use crate::services::indexer::blacklist::Blacklist;
 use ignore::{WalkBuilder, WalkState};
 use std::path::PathBuf;
@@ -21,7 +20,7 @@ pub fn traverse_system(root: PathBuf, blacklist: Arc<Blacklist>, tx: mpsc::Sende
         .same_file_system(true)
         // Skip blacklisted directories
         .filter_entry(move |entry| {
-            !should_skip_path(&entry.path().to_path_buf(), &filter_blacklist)
+            !filter_blacklist.should_skip_path(entry.path())
         })
         .build_parallel();
 
@@ -36,7 +35,7 @@ pub fn traverse_system(root: PathBuf, blacklist: Arc<Blacklist>, tx: mpsc::Sende
                 let path = entry.path().to_path_buf();
 
                 if path.is_file()
-                    && !should_skip_path(&path, &blacklist)
+                    && !blacklist.should_skip_path(&path)
                     && tx.blocking_send(path).is_err()
                 {
                     return WalkState::Quit;
