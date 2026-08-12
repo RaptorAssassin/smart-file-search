@@ -1,6 +1,7 @@
 pub mod client;
 pub mod pipeline;
 pub mod process;
+pub mod prompts;
 
 use std::sync::Arc;
 use tauri::{AppHandle, Manager};
@@ -30,7 +31,8 @@ pub fn start_ai_processing(
                         Some(id) => id,
                         None => break,
                     };
-                    if let Err(err) = process::ai_process_file(&app_handle, &blacklist, row_id).await
+                    if let Err(err) =
+                        process::ai_process_file(&app_handle, &blacklist, row_id).await
                     {
                         eprintln!("AI processing failed for row {row_id}: {err}");
                         if let Err(e) = process::mark_error(&app_handle, row_id, &err).await {
@@ -67,11 +69,11 @@ async fn drain_pending_rows(app_handle: &AppHandle) -> Vec<i64> {
         Ok(conn) => conn,
         Err(_) => return Vec::new(),
     };
-    let mut stmt = match conn.prepare("SELECT id FROM files WHERE ai_status = 'pending' ORDER BY id")
-    {
-        Ok(stmt) => stmt,
-        Err(_) => return Vec::new(),
-    };
+    let mut stmt =
+        match conn.prepare("SELECT id FROM files WHERE ai_status = 'pending' ORDER BY id") {
+            Ok(stmt) => stmt,
+            Err(_) => return Vec::new(),
+        };
     let mut rows = match stmt.query([]) {
         Ok(rows) => rows,
         Err(_) => return Vec::new(),

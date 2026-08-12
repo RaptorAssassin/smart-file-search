@@ -75,7 +75,15 @@ pub async fn ai_process_file(
         Vec::new()
     };
 
-    update_row(app_handle, row_id, &content_text, &summary, &keywords, &embedding).await
+    update_row(
+        app_handle,
+        row_id,
+        &content_text,
+        &summary,
+        &keywords,
+        &embedding,
+    )
+    .await
 }
 
 /// Marks a file as failed so it isn't picked up again.
@@ -100,7 +108,6 @@ fn image_to_base64(path: &Path) -> Result<String, String> {
     Ok(STANDARD.encode(bytes))
 }
 
-/// Saves a file's extracted text, keywords, summary, and embedding to the database.
 async fn update_row(
     app_handle: &AppHandle,
     row_id: i64,
