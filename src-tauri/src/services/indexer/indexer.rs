@@ -1,3 +1,4 @@
+use crate::services::ai::{self, AI_QUEUE_CAPACITY};
 use crate::services::indexer::blacklist::Blacklist;
 use ignore::{WalkBuilder, WalkState};
 use std::path::PathBuf;
@@ -9,6 +10,7 @@ use crate::services::indexer::processing::process_file;
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
 
+/// Walks the filesystem and pushes every non-blacklisted file into the indexing queue.
 pub fn traverse_system(root: PathBuf, blacklist: Arc<Blacklist>, tx: mpsc::Sender<PathBuf>) {
     // Arc is used to share the blacklist across threads without needing to clone it for each entry
     let filter_blacklist = Arc::clone(&blacklist);
@@ -19,9 +21,7 @@ pub fn traverse_system(root: PathBuf, blacklist: Arc<Blacklist>, tx: mpsc::Sende
         .git_ignore(false)
         .same_file_system(true)
         // Skip blacklisted directories
-        .filter_entry(move |entry| {
-            !filter_blacklist.should_skip_path(entry.path())
-        })
+        .filter_entry(move |entry| !filter_blacklist.should_skip_path(entry.path()))
         .build_parallel();
 
     let blacklist = Arc::clone(&blacklist);
@@ -46,23 +46,41 @@ pub fn traverse_system(root: PathBuf, blacklist: Arc<Blacklist>, tx: mpsc::Sende
     });
 }
 
+/// Kicks off the scan and the AI worker pool that follows along behind it.
 pub fn start_indexing(
     app_handle: tauri::AppHandle,
     blacklist: Arc<Blacklist>,
 ) -> Result<(), String> {
     let (tx, mut rx) = tokio::sync::mpsc::channel::<PathBuf>(1000);
+    let (ai_tx, ai_rx) = tokio::sync::mpsc::channel::<i64>(AI_QUEUE_CAPACITY);
 
     let root_path = PathBuf::from("/");
     let blacklist = Arc::clone(&blacklist);
 
+    let walker_blacklist = Arc::clone(&blacklist);
     tauri::async_runtime::spawn(async move {
-        traverse_system(root_path, blacklist, tx);
+        traverse_system(root_path, walker_blacklist, tx);
     });
+
+    ai::start_ai_processing(
+        app_handle.clone(),
+        Arc::clone(&blacklist),
+        ai_tx.clone(),
+        ai_rx,
+    );
 
     tauri::async_runtime::spawn(async move {
         while let Some(file_path) = rx.recv().await {
-            if let Err(err) = process_file(&app_handle, &file_path).await {
-                eprintln!("Failed to process file {:?}: {}", file_path, err);
+            match process_file(&app_handle, &file_path).await {
+                Ok(row_id) => {
+                    if ai_tx.send(row_id).await.is_err() {
+                        eprintln!(
+                            "AI pipeline closed, dropped row {row_id} for {:?}",
+                            file_path
+                        );
+                    }
+                }
+                Err(err) => eprintln!("Failed to process file {:?}: {}", file_path, err),
             }
         }
     });

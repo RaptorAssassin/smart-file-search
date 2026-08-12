@@ -9,7 +9,8 @@ use tauri::{AppHandle, Manager};
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
 
-pub async fn process_file(app_handle: &AppHandle, path: &PathBuf) -> Result<(), String> {
+/// Indexes one file's metadata and returns the row id it was stored under.
+pub async fn process_file(app_handle: &AppHandle, path: &PathBuf) -> Result<i64, String> {
     println!("Processing file: {:?}", path);
 
     let metadata = match fs::metadata(path) {
@@ -83,10 +84,13 @@ pub async fn process_file(app_handle: &AppHandle, path: &PathBuf) -> Result<(), 
         INSERT INTO files (file_path, file_name, file_hash, extension, file_size, inode, mime_type, created_at, modified_at, indexed_at)
         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)", params![file_data.file_path, file_data.file_name, file_data.file_hash, file_data.extension, file_data.file_size, file_data.inode, file_data.mime_type, file_data.created_at, file_data.modified_at, file_data.indexed_at]).map_err(|e| e.to_string())?;
 
+    let row_id = conn.last_insert_rowid();
+
     println!("Inserted file data into database: {:#?}", file_data);
-    Ok(())
+    Ok(row_id)
 }
 
+/// Hashes a file's full contents with blake3 to use as a change detector.
 fn calculate_file_hash(path: &PathBuf) -> Result<String, Box<dyn std::error::Error>> {
     let mut file = File::open(path)?;
     let mut hasher = blake3::Hasher::new();

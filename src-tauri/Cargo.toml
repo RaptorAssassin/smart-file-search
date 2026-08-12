@@ -45,3 +45,9 @@ blake3 = "1.5"
 
 # Blacklist and pattern matching
 globset = "0.4"
+
+# AI metadata/labels pipeline (Ollama over HTTP)
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+base64 = "0.22"
+pdf-extract = "0.7"
+docx-rs = "0.4"
