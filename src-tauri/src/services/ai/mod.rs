@@ -43,7 +43,12 @@ pub fn start_ai_processing(
             });
         }
 
-        for row_id in drain_pending_rows(&app_handle).await {
+        for row_id in drain_rows_with_status(&app_handle, "pending").await {
+            if tx.send(row_id).await.is_err() {
+                break;
+            }
+        }
+        for row_id in drain_rows_with_status(&app_handle, "error").await {
             if tx.send(row_id).await.is_err() {
                 break;
             }
@@ -60,7 +65,7 @@ fn worker_count() -> usize {
 }
 
 /// Collects the ids of files that still need AI processing at startup.
-async fn drain_pending_rows(app_handle: &AppHandle) -> Vec<i64> {
+async fn drain_rows_with_status(app_handle: &AppHandle, status: &str) -> Vec<i64> {
     let state = match app_handle.try_state::<DbState>() {
         Some(state) => state,
         None => return Vec::new(),
@@ -69,12 +74,11 @@ async fn drain_pending_rows(app_handle: &AppHandle) -> Vec<i64> {
         Ok(conn) => conn,
         Err(_) => return Vec::new(),
     };
-    let mut stmt =
-        match conn.prepare("SELECT id FROM files WHERE ai_status = 'pending' ORDER BY id") {
-            Ok(stmt) => stmt,
-            Err(_) => return Vec::new(),
-        };
-    let mut rows = match stmt.query([]) {
+    let mut stmt = match conn.prepare("SELECT id FROM files WHERE ai_status = ?1 ORDER BY id") {
+        Ok(stmt) => stmt,
+        Err(_) => return Vec::new(),
+    };
+    let mut rows = match stmt.query([status]) {
         Ok(rows) => rows,
         Err(_) => return Vec::new(),
     };

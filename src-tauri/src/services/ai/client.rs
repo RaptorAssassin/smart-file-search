@@ -218,3 +218,109 @@ impl OllamaClient {
         Ok(generate_response.response)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    #[test]
+    fn new_sets_default_models() {
+        let client = OllamaClient::new("http://localhost:11434");
+        assert_eq!(client.llm_model, "gemma3:4b");
+        assert_eq!(client.embed_model, "nomic-embed-text");
+        assert_eq!(client.base_url, "http://localhost:11434");
+    }
+
+    #[tokio::test]
+    async fn keywords_hit_chat_endpoint() {
+        let mock_server = MockServer::start().await;
+        let client = OllamaClient::new(mock_server.uri());
+
+        Mock::given(method("POST"))
+            .and(path("/api/chat"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "message": {
+                    "role": "assistant",
+                    "content": "[\"rust\", \"ai\"]"
+                },
+                "done": true
+            })))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let result = client.generate_keywords("rust and ai").await;
+
+        assert_eq!(result, Ok(vec!["rust".to_string(), "ai".to_string()]));
+    }
+
+    #[tokio::test]
+    async fn summary_omits_format_field() {
+        let mock_server = MockServer::start().await;
+        let client = OllamaClient::new(mock_server.uri());
+
+        Mock::given(method("POST"))
+            .and(path("/api/chat"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "message": {
+                    "role": "assistant",
+                    "content": "A short summary"
+                },
+                "done": true
+            })))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let result = client.generate_summary("some text").await;
+        assert_eq!(result, Ok("A short summary".to_string()));
+
+        let requests = mock_server.received_requests().await.unwrap();
+        let body: serde_json::Value =
+            serde_json::from_slice(&requests[0].body).expect("request body is valid JSON");
+        assert!(body.get("format").is_none(), "summary must not send format");
+    }
+
+    #[tokio::test]
+    async fn embedding_rejects_wrong_dimensions() {
+        let mock_server = MockServer::start().await;
+        let client = OllamaClient::new(mock_server.uri());
+
+        Mock::given(method("POST"))
+            .and(path("/api/embed"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "embeddings": [[0.1, 0.2, 0.3]]
+            })))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let err = client.generate_embedding("hello").await.unwrap_err();
+        assert!(err.contains("expected 768"), "unexpected error: {err}");
+    }
+
+    #[tokio::test]
+    async fn keywords_rejects_incomplete_response() {
+        let mock_server = MockServer::start().await;
+        let client = OllamaClient::new(mock_server.uri());
+
+        Mock::given(method("POST"))
+            .and(path("/api/chat"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "message": {
+                    "role": "assistant",
+                    "content": "[]"
+                },
+                "done": false
+            })))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let err = client.generate_keywords("hello").await.unwrap_err();
+        assert_eq!(err, "Keyword generation not completed");
+    }
+}
