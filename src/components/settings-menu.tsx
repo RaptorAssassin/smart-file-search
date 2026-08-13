@@ -15,8 +15,8 @@ import { Checkbox } from './ui/checkbox'
 import { useUIStore } from '@/stores/ui-store'
 import { Button } from './ui/button'
 import { SettingsIcon } from 'lucide-react'
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 import KeyboardShortcut from './keyboard-shortcut'
+import { SiGithub } from '@icons-pack/react-simple-icons'
 
 export default function SettingsMenu() {
   const config = useConfigStore((state) => state.config)
@@ -132,6 +132,17 @@ export default function SettingsMenu() {
           />
           <FieldLabel htmlFor="enable-debug-menu">Enable Debug Menu</FieldLabel>
         </Field>
+        <Button variant="link" className="hover:no-underline">
+          <a
+            href="https://github.com/RaptorAssassin/smart-file-search"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="gap flex gap-2 "
+          >
+            <SiGithub className="size-5" />
+            View Repo
+          </a>
+        </Button>
       </DialogContent>
     </Dialog>
   )

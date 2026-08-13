@@ -47,6 +47,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_sql::Builder::default().build())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
             let app_handle = app.handle();

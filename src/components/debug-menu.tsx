@@ -9,7 +9,7 @@ import {
 import { useEffect, useState } from 'react'
 import { copyToClipboard, formatBytes } from '@/lib/utils'
 import { useConfigStore } from '@/stores/config-store'
-import { Field, FieldContent, FieldLabel } from './ui/field'
+import { Field, FieldLabel } from './ui/field'
 import { useUIStore } from '@/stores/ui-store'
 import { Button } from './ui/button'
 import { BugIcon, CopyIcon } from 'lucide-react'

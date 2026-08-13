@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from 'react'
 import { Button } from './ui/button'
 import { SearchIcon, XIcon } from 'lucide-react'
 import { InputGroup, InputGroupAddon, InputGroupInput } from './ui/input-group'
-import { Kbd, KbdGroup } from './ui/kbd'
 import { useUIStore } from '@/stores/ui-store'
 import KeyboardShortcut from './keyboard-shortcut'
 
