@@ -1,0 +1,61 @@
+# ==========================================
+
+# Tauri & Rust Build Artifacts
+
+# ==========================================
+
+src-tauri/target/
+**/src-tauri/target/
+*.rs.bk
+
+# ==========================================
+
+# Frontend Dependencies & Bundles
+
+# ==========================================
+
+node_modules/
+.pnpm-store/
+.yarn/
+dist/
+build/
+out/
+.svelte-kit/
+.next/
+.nuxt/
+
+# ==========================================
+
+# Environment & Secret Files
+
+# ==========================================
+
+.env
+.env.*
+!.env.example
+
+# ==========================================
+
+# System, IDE & Tooling Logs
+
+# ==========================================
+
+.git/
+.vscode/
+.idea/
+_.log
+npm-debug.log_
+yarn-debug.log*
+pnpm-debug.log*
+
+# ==========================================
+
+# Large Assets & Media (Optional)
+
+# ==========================================
+
+# Add large static video/audio files here if you have them in public/
+
+# *.mp4
+
+# *.wav

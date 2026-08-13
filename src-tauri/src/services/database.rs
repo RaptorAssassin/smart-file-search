@@ -8,12 +8,38 @@ pub struct DbState {
     pub conn: std::sync::Mutex<Connection>,
 }
 
+// Default database table
+#[derive(Debug)]
+pub struct DbContent {
+    pub file_path: String,
+    pub file_name: String,
+    pub file_hash: String,
+    pub extension: String,
+    pub file_size: i64,
+
+    pub inode: Option<i64>,
+    pub mime_type: Option<String>,
+    pub category: Option<String>,
+    pub content_text: Option<String>,
+    pub ai_summary: Option<String>,
+    pub ai_keywords: Option<String>,
+
+    pub created_at: Option<String>,
+    pub modified_at: Option<String>,
+    pub indexed_at: Option<String>,
+
+    pub ai_status: Option<String>,
+    pub ai_error: Option<String>,
+    pub last_accessed_at: Option<String>,
+    pub last_seen_scan_id: Option<i64>,
+}
+
 /// Initializes the user database path, loads vector support, and structures tables.
 pub fn init_database(app_handle: &AppHandle) -> Result<(Connection, PathBuf)> {
     let app_dir = app_handle
         .path()
-        .app_data_dir()
-        .expect("Failed to get app data dir");
+        .app_config_dir()
+        .expect("Error accessing app directory");
     create_dir_all(&app_dir).expect("Failed to create app database folder");
 
     let db_path = app_dir.join("app.db");
@@ -48,7 +74,7 @@ pub fn init_database(app_handle: &AppHandle) -> Result<(Connection, PathBuf)> {
         }
     }
 
-    println!("Database path: {}", &db_path.display());
+    //println!("Database path: {}", &db_path.display());
 
     Ok((conn, db_path))
 }
@@ -58,19 +84,25 @@ fn create_schema(conn: &Connection) -> Result<()> {
         r#"
         -- COMMAND 1: Core Relational Table
         CREATE TABLE IF NOT EXISTS files (
-            id TEXT PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             file_path TEXT NOT NULL UNIQUE,
             file_name TEXT NOT NULL,
+            file_hash TEXT NOT NULL,
+            inode INTEGER,
             extension TEXT NOT NULL,
             file_size INTEGER NOT NULL,
             mime_type TEXT,
             category TEXT,
+            content_text TEXT,
+            ai_summary TEXT,
+            ai_keywords TEXT,
             created_at DATETIME,
             modified_at DATETIME,
             indexed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             ai_status TEXT DEFAULT 'pending',
             ai_error TEXT,
-            last_accessed_at DATETIME
+            last_accessed_at DATETIME,
+            last_seen_scan_id INTEGER DEFAULT 0
         );
         CREATE INDEX IF NOT EXISTS idx_files_path ON files(file_path);
         CREATE INDEX IF NOT EXISTS idx_files_status ON files(ai_status);
@@ -85,23 +117,37 @@ fn create_schema(conn: &Connection) -> Result<()> {
             content_rowid='rowid'
         );
 
+        -- Trigger: After Inserting a File
         CREATE TRIGGER IF NOT EXISTS files_ai AFTER INSERT ON files BEGIN
-            INSERT INTO files_fts(rowid, id, content_text) VALUES (new.rowid, new.id, NULL);
+            INSERT INTO files_fts(rowid, content_text, ai_summary, ai_keywords) 
+            VALUES (new.id, new.content_text, new.ai_summary, new.ai_keywords);
         END;
 
+        -- Trigger: After Deleting a File
         CREATE TRIGGER IF NOT EXISTS files_ad AFTER DELETE ON files BEGIN
-            INSERT INTO files_fts(files_fts, rowid, id, content_text) VALUES('delete', old.rowid, old.id, NULL);
+            INSERT INTO files_fts(files_fts, rowid, content_text, ai_summary, ai_keywords) 
+            VALUES('delete', old.id, old.content_text, old.ai_summary, old.ai_keywords);
         END;
 
+        -- Trigger: After Updating a File (Delete old FTS entry, Insert new)
         CREATE TRIGGER IF NOT EXISTS files_au AFTER UPDATE ON files BEGIN
-        UPDATE files_fts SET content_text = new.content_text, ai_summary = new.ai_summary, ai_keywords = new.ai_keywords WHERE rowid = new.rowid;
+            INSERT INTO files_fts(files_fts, rowid, content_text, ai_summary, ai_keywords) 
+            VALUES('delete', old.id, old.content_text, old.ai_summary, old.ai_keywords);
+            
+            INSERT INTO files_fts(rowid, content_text, ai_summary, ai_keywords) 
+            VALUES (new.id, new.content_text, new.ai_summary, new.ai_keywords);
         END;
 
         -- COMMAND 3: Vector Search Tables (Enabled by sqlite3_auto_extension above)
         CREATE VIRTUAL TABLE IF NOT EXISTS files_vec USING vec0(
-            id TEXT PRIMARY KEY,
+            id INTEGER PRIMARY KEY,
             embedding float[768]
         );
+
+        -- Trigger: Delete embedding when file is removed
+        CREATE TRIGGER IF NOT EXISTS files_vec_ad AFTER DELETE ON files BEGIN
+            DELETE FROM files_vec WHERE id = old.id;
+        END;
         "#,
     )?;
     Ok(())

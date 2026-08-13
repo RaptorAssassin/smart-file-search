@@ -1,7 +1,7 @@
 [package]
 name = "smart-file-search"
 version = "0.1.0"
-description = "A Tauri App"
+description = "Smart File Search"
 authors = ["you"]
 edition = "2021"
 
@@ -22,9 +22,40 @@ tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+json5 = "0.4"
 
 walkdir = "2.5"
 rusqlite = { version = "0.32", features = ["bundled"] }
 sqlite-vec = "0.1.3"
 tauri-plugin-sql = "2.4.0"
 zerocopy = { version = "0.7", features = ["derive"] }
+anyhow = "1.0.104"
+
+# Type generation for structs and Tauri commands
+specta = "=2.0.0-rc.25"
+tauri-specta = { version = "2.0.0-rc.25", features = ["typescript"] }
+specta-typescript = "0.0.12"
+
+# File indexing
+ignore = "0.4.33"
+tokio = { version = "1", features = ["full"] }
+chrono = { version = "0.4", features = ["serde"] }
+mime_guess = "2.0"
+blake3 = "1.5"
+
+# Blacklist and pattern matching
+globset = "0.4"
+
+# AI pipeline
+base64 = "0.22"
+pdf-extract = "0.7"
+docx-rs = "0.4"
+
+# HTTP stuff
+reqwest = { version = "0.12", default-features = false, features = [
+    "json",
+    "rustls-tls",
+] }
+
+[dev-dependencies]
+wiremock = "0.6"
