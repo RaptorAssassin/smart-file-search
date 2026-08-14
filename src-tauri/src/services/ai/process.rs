@@ -140,7 +140,7 @@ async fn update_row(
     if !embedding.is_empty() {
         let embedding_json = serde_json::to_string(embedding).map_err(|e| e.to_string())?;
         conn.execute(
-            "INSERT OR REPLACE INTO files_vec(rowid, embedding) VALUES (?1, ?2)",
+            "INSERT OR REPLACE INTO files_vec(id, embedding) VALUES (?1, ?2)",
             params![row_id, embedding_json],
         )
         .map_err(|e| e.to_string())?;

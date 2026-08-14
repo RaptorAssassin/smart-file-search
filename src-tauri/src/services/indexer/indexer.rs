@@ -46,7 +46,7 @@ pub fn traverse_system(root: PathBuf, blacklist: Arc<Blacklist>, tx: mpsc::Sende
     });
 }
 
-/// Kicks off the scan and the AI worker pool that follows along behind it.
+/// Starts the filesystem scan and the AI worker pool that processes behind it.
 pub fn start_indexing(
     app_handle: tauri::AppHandle,
     blacklist: Arc<Blacklist>,

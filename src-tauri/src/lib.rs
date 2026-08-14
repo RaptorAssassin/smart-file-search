@@ -9,6 +9,7 @@ use crate::{
     commands::{
         config::config::{get_config, save_config, ConfigManager},
         debug::{get_database_path, get_database_size},
+        search::{search_files, search_filter_options},
     },
     services::indexer::{blacklist::Blacklist, indexer::start_indexing},
 };
@@ -30,6 +31,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
             get_database_size,
             get_config,
             save_config,
+            search_files,
+            search_filter_options,
         ])
         .dangerously_cast_bigints_to_number()
 }

@@ -34,7 +34,7 @@ pub struct DbContent {
     pub last_seen_scan_id: Option<i64>,
 }
 
-/// Initializes the user database path, loads vector support, and structures tables.
+/// Opens the app database, registers sqlite-vec, and applies the schema migration.
 pub fn init_database(app_handle: &AppHandle) -> Result<(Connection, PathBuf)> {
     let app_dir = app_handle
         .path()

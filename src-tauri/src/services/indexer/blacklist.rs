@@ -27,7 +27,7 @@ pub struct Blacklist {
 }
 
 impl Blacklist {
-    /// Builds a new Blacklist by merging the hardcoded blacklist from the JSON file with the custom user configuration.
+    /// Builds a Blacklist from the bundled JSON blacklist and the user's config.
     pub fn new(
         app: &AppHandle,
         config: BlacklistConfig,
@@ -60,9 +60,7 @@ impl Blacklist {
         Self::from_lists(folder_names, extensions, path_patterns)
     }
 
-    /// Compiles raw lists into a matchable Blacklist. Folder and extension names are
-    /// lowercased and globs are case-insensitive because the walker yields real
-    /// on-disk casing, which varies on Windows and macOS.
+    /// Compiles raw lists into a matchable Blacklist, normalizing case for real on-disk paths.
     pub fn from_lists(
         folder_names: Vec<String>,
         extensions: Vec<String>,
