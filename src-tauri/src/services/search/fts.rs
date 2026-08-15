@@ -122,11 +122,7 @@ mod tests {
         id
     }
 
-    async fn run(
-        conn: &Mutex<Connection>,
-        query: &str,
-        filters: SearchFilters,
-    ) -> Vec<RankedFile> {
+    async fn run(conn: &Mutex<Connection>, query: &str, filters: SearchFilters) -> Vec<RankedFile> {
         FtsEngine.search(conn, query, &filters).await.unwrap()
     }
 
@@ -137,7 +133,14 @@ mod tests {
     #[tokio::test]
     async fn empty_query_returns_no_votes() {
         let conn = setup();
-        insert(&*conn.lock().unwrap(), "a.txt", "txt", Some("rust"), None, None);
+        insert(
+            &*conn.lock().unwrap(),
+            "a.txt",
+            "txt",
+            Some("rust"),
+            None,
+            None,
+        );
         let result = run(&conn, "  ", SearchFilters::default()).await;
         assert!(result.is_empty());
     }
@@ -145,7 +148,14 @@ mod tests {
     #[tokio::test]
     async fn matches_content_text() {
         let conn = setup();
-        let id = insert(&*conn.lock().unwrap(), "a.txt", "txt", Some("rust borrow checker"), None, None);
+        let id = insert(
+            &*conn.lock().unwrap(),
+            "a.txt",
+            "txt",
+            Some("rust borrow checker"),
+            None,
+            None,
+        );
         let result = run(&conn, "borrow", SearchFilters::default()).await;
         assert_eq!(ids(&result), vec![id]);
     }
@@ -153,7 +163,14 @@ mod tests {
     #[tokio::test]
     async fn no_content_rows_give_successful_empty() {
         let conn = setup();
-        insert(&*conn.lock().unwrap(), "a.txt", "txt", Some("rust"), None, None);
+        insert(
+            &*conn.lock().unwrap(),
+            "a.txt",
+            "txt",
+            Some("rust"),
+            None,
+            None,
+        );
         let result = run(&conn, "photosynthesis", SearchFilters::default()).await;
         assert!(result.is_empty());
     }
@@ -168,7 +185,14 @@ mod tests {
     #[tokio::test]
     async fn operator_chars_are_treated_literally() {
         let conn = setup();
-        let id = insert(&*conn.lock().unwrap(), "a.txt", "txt", Some("C++ pointers"), None, None);
+        let id = insert(
+            &*conn.lock().unwrap(),
+            "a.txt",
+            "txt",
+            Some("C++ pointers"),
+            None,
+            None,
+        );
         let result = run(&conn, "C++", SearchFilters::default()).await;
         assert_eq!(ids(&result), vec![id]);
     }
@@ -176,8 +200,22 @@ mod tests {
     #[tokio::test]
     async fn filters_are_applied_via_join() {
         let conn = setup();
-        let md_id = insert(&*conn.lock().unwrap(), "a.md", "md", Some("rust"), None, None);
-        insert(&*conn.lock().unwrap(), "a.txt", "txt", Some("rust"), None, None);
+        let md_id = insert(
+            &*conn.lock().unwrap(),
+            "a.md",
+            "md",
+            Some("rust"),
+            None,
+            None,
+        );
+        insert(
+            &*conn.lock().unwrap(),
+            "a.txt",
+            "txt",
+            Some("rust"),
+            None,
+            None,
+        );
         let filters = SearchFilters {
             extensions: vec!["md".to_string()],
             ..Default::default()

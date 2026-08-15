@@ -12,8 +12,8 @@ pub enum EngineKind {
 impl EngineKind {
     pub fn weight(&self) -> f64 {
         match self {
-            EngineKind::Metadata => 1.0,
-            EngineKind::Fts => 1.0,
+            EngineKind::Metadata => 2.0,
+            EngineKind::Fts => 2.0,
             EngineKind::Vector => 1.0,
         }
     }

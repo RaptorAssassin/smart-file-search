@@ -8,6 +8,16 @@ export const commands = {
 	getDatabaseSize: () => typedError<number, string>(__TAURI_INVOKE("get_database_size")),
 	getConfig: () => __TAURI_INVOKE<Config>("get_config"),
 	saveConfig: (config: Config) => typedError<null, string>(__TAURI_INVOKE("save_config", { config })),
+	searchFiles: (query: string, filters: {
+	extensions: string[],
+	min_size: number | null,
+	max_size: number | null,
+	modified_after: string | null,
+	modified_before: string | null,
+	created_after: string | null,
+	created_before: string | null,
+} | null, limit: number | null) => typedError<SearchResponse, string>(__TAURI_INVOKE("search_files", { query, filters, limit })),
+	searchFilterOptions: () => typedError<SearchFilterOptions, string>(__TAURI_INVOKE("search_filter_options")),
 };
 
 /* Types */
@@ -20,6 +30,43 @@ export type IndexingConfig = {
 	excluded_folders?: string[],
 	excluded_extensions?: string[],
 	excluded_path_patterns?: string[],
+};
+
+export type SearchFilterOptions = {
+	extensions: string[],
+	categories: string[],
+	min_size: number,
+	max_size: number,
+	min_modified_at: string | null,
+	max_modified_at: string | null,
+};
+
+export type SearchFilters = {
+	extensions: string[],
+	min_size: number | null,
+	max_size: number | null,
+	modified_after: string | null,
+	modified_before: string | null,
+	created_after: string | null,
+	created_before: string | null,
+};
+
+export type SearchResponse = {
+	results: SearchResult[],
+	unavailable: string[],
+};
+
+export type SearchResult = {
+	file_id: number,
+	file_path: string,
+	file_name: string,
+	extension: string,
+	category: string | null,
+	mime_type: string | null,
+	file_size: number,
+	created_at: string | null,
+	modified_at: string | null,
+	score: number | null,
 };
 
 export type SettingsConfig = {
