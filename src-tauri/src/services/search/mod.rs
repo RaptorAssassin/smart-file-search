@@ -294,6 +294,7 @@ mod tests {
 
         let vector = VectorEngine {
             client: OllamaClient::new(mock_server.uri()),
+            embeddings_enabled: true,
         };
         let response = search(&conn, "report", &SearchFilters::default(), 10, &vector)
             .await
@@ -314,6 +315,7 @@ mod tests {
 
         let vector = VectorEngine {
             client: OllamaClient::new("http://localhost:1"),
+            embeddings_enabled: true,
         };
         let response = search(&conn, "report", &SearchFilters::default(), 10, &vector)
             .await
@@ -340,6 +342,7 @@ mod tests {
 
         let vector = VectorEngine {
             client: OllamaClient::new(mock_server.uri()),
+            embeddings_enabled: true,
         };
         let response = search(&conn, "rust", &SearchFilters::default(), 10, &vector)
             .await
@@ -366,6 +369,7 @@ mod tests {
 
         let vector = VectorEngine {
             client: OllamaClient::new(mock_server.uri()),
+            embeddings_enabled: true,
         };
         let filters = SearchFilters {
             extensions: vec!["md".to_string()],
@@ -387,6 +391,7 @@ mod tests {
 
         let vector = VectorEngine {
             client: OllamaClient::new(mock_server.uri()),
+            embeddings_enabled: true,
         };
         let response = search(&conn, "   ", &SearchFilters::default(), 10, &vector)
             .await

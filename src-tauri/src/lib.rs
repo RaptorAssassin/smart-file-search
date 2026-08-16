@@ -9,7 +9,9 @@ use crate::{
     commands::{
         config::config::{get_config, save_config, ConfigManager},
         debug::{get_database_path, get_database_size},
+        files::reveal_in_folder,
         search::{search_files, search_filter_options},
+        usage::get_usage,
     },
     services::indexer::{blacklist::Blacklist, indexer::start_indexing},
 };
@@ -33,6 +35,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
             save_config,
             search_files,
             search_filter_options,
+            get_usage,
+            reveal_in_folder,
         ])
         .dangerously_cast_bigints_to_number()
 }
@@ -67,6 +71,8 @@ pub fn run() {
             app.manage(services::database::DbState {
                 conn: std::sync::Mutex::new(conn),
             });
+
+            app.manage(Arc::new(crate::services::usage::UsageCounters::default()));
 
             app.manage(AppState {
                 db_path,

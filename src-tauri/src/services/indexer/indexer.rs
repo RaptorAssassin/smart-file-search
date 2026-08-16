@@ -1,8 +1,10 @@
 use crate::services::ai::{self, AI_QUEUE_CAPACITY};
 use crate::services::indexer::blacklist::Blacklist;
+use crate::services::usage::UsageCounters;
 use ignore::{WalkBuilder, WalkState};
 use std::path::PathBuf;
 use std::sync::Arc;
+use tauri::Manager;
 use tokio::sync::mpsc;
 
 use crate::services::indexer::processing::process_file;
@@ -71,6 +73,12 @@ pub fn start_indexing(
 
     tauri::async_runtime::spawn(async move {
         while let Some(file_path) = rx.recv().await {
+            // Every file the walker emits counts as indexed for this session,
+            // even if it was already in the database from an earlier run.
+            if let Some(usage) = app_handle.try_state::<Arc<UsageCounters>>() {
+                usage.incr_files_indexed();
+            }
+
             match process_file(&app_handle, &file_path).await {
                 Ok(row_id) => {
                     if ai_tx.send(row_id).await.is_err() {

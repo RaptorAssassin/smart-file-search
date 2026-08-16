@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use tauri::State;
@@ -5,10 +7,14 @@ use tauri::State;
 use crate::services::database::DbState;
 use crate::services::search::vector::VectorEngine;
 use crate::services::search::{self, SearchFilters, SearchResponse};
+use crate::services::usage::UsageCounters;
+use crate::AppState;
 
 #[tauri::command]
 #[specta::specta]
 pub async fn search_files(
+    app: State<'_, AppState>,
+    usage: State<'_, Arc<UsageCounters>>,
     db: State<'_, DbState>,
     query: String,
     filters: Option<SearchFilters>,
@@ -16,7 +22,8 @@ pub async fn search_files(
 ) -> Result<SearchResponse, String> {
     let filters = filters.unwrap_or_default();
     let limit = limit.unwrap_or(50);
-    let vector = VectorEngine::new();
+    let ai = app.config_manager.config.read().unwrap().clone().settings.ai;
+    let vector = VectorEngine::from_config(&ai, Some(Arc::clone(&usage)));
     search::search(&db.conn, &query, &filters, limit, &vector).await
 }
 

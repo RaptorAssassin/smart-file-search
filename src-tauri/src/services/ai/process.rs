@@ -1,12 +1,17 @@
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use tauri::{AppHandle, Manager};
 
 use rusqlite::params;
 
+use crate::commands::config::models::AiProvider;
 use crate::services::ai::client::OllamaClient;
+use crate::services::ai::openai::OpenAiClient;
 use crate::services::ai::pipeline::{self, PipelineKind};
 use crate::services::database::DbState;
 use crate::services::indexer::blacklist::Blacklist;
+use crate::services::usage::UsageCounters;
+use crate::AppState;
 
 /// Runs one file through the AI pipeline and writes the results back to the database.
 pub async fn ai_process_file(
@@ -56,21 +61,58 @@ pub async fn ai_process_file(
         PipelineKind::Audio | PipelineKind::Video | PipelineKind::Unsupported => {}
     }
 
-    let client = OllamaClient::new("http://localhost:11434");
+    let ai_config = app_handle
+        .try_state::<AppState>()
+        .map(|state| state.config_manager.config.read().unwrap().clone().settings.ai)
+        .unwrap_or_default();
+
+    let usage = app_handle
+        .try_state::<Arc<UsageCounters>>()
+        .map(|state| Arc::clone(&state));
 
     let mut keywords = Vec::new();
     let mut summary = String::new();
     if let Some(text) = &model_text {
-        keywords = client.generate_keywords(text).await?;
-        summary = client.generate_summary(text).await?;
+        match ai_config.provider {
+            AiProvider::Ollama => {
+                let mut client = OllamaClient::with_usage(&ai_config.ollama_url, usage.clone());
+                client.llm_model = ai_config.ollama_model.clone();
+                client.embed_model = ai_config.embed_model.clone();
+                keywords = client.generate_keywords(text).await?;
+                summary = client.generate_summary(text).await?;
+            }
+            AiProvider::Custom => {
+                let client = OpenAiClient::with_usage(
+                    &ai_config.custom_endpoint,
+                    &ai_config.custom_api_key,
+                    &ai_config.custom_model,
+                    usage.clone(),
+                );
+                keywords = client.generate_keywords(text).await?;
+                summary = client.generate_summary(text).await?;
+            }
+        }
     }
 
-    let embedding = if let Some(text) = &model_text {
-        client.generate_embedding(text).await?
-    } else if let Some(image) = &image_path {
-        client
-            .generate_embedding_from_image(&image_to_base64(image)?)
-            .await?
+    let embed_client = if ai_config.embeddings_enabled {
+        let mut client = OllamaClient::with_usage(&ai_config.ollama_url, usage);
+        client.llm_model = ai_config.ollama_model.clone();
+        client.embed_model = ai_config.embed_model.clone();
+        Some(client)
+    } else {
+        None
+    };
+
+    let embedding = if let Some(client) = embed_client {
+        if let Some(text) = &model_text {
+            client.generate_embedding(text).await?
+        } else if let Some(image) = &image_path {
+            client
+                .generate_embedding_from_image(&image_to_base64(image)?)
+                .await?
+        } else {
+            Vec::new()
+        }
     } else {
         Vec::new()
     };
@@ -123,6 +165,8 @@ async fn update_row(
 
     let joined_keywords = keywords.join(", ");
 
+    let mut produced_ai_data = false;
+
     if content_text.is_empty() && summary.is_empty() && joined_keywords.is_empty() {
         conn.execute(
             "UPDATE files SET ai_status = 'done' WHERE id = ?1",
@@ -130,6 +174,7 @@ async fn update_row(
         )
         .map_err(|e| e.to_string())?;
     } else {
+        produced_ai_data = true;
         conn.execute(
             "UPDATE files SET content_text = ?1, ai_summary = ?2, ai_keywords = ?3, ai_status = 'done' WHERE id = ?4",
             params![content_text, summary, joined_keywords, row_id],
@@ -138,12 +183,21 @@ async fn update_row(
     }
 
     if !embedding.is_empty() {
+        produced_ai_data = true;
         let embedding_json = serde_json::to_string(embedding).map_err(|e| e.to_string())?;
         conn.execute(
             "INSERT OR REPLACE INTO files_vec(id, embedding) VALUES (?1, ?2)",
             params![row_id, embedding_json],
         )
         .map_err(|e| e.to_string())?;
+    }
+
+    drop(conn);
+
+    if produced_ai_data {
+        if let Some(usage) = app_handle.try_state::<Arc<UsageCounters>>() {
+            usage.incr_files_ai_indexed();
+        }
     }
 
     Ok(())

@@ -1,23 +1,37 @@
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use rusqlite::types::Value;
 use rusqlite::{params_from_iter, Connection};
 
+use crate::commands::config::models::AiConfig;
 use crate::services::ai::client::OllamaClient;
 use crate::services::search::filters::SearchFilters;
 use crate::services::search::fusion::{EngineKind, RankedFile};
 use crate::services::search::SearchEngine;
+use crate::services::usage::UsageCounters;
 
 const KNN_CANDIDATES: i64 = 200;
 
 pub struct VectorEngine {
     pub client: OllamaClient,
+    pub embeddings_enabled: bool,
 }
 
 impl VectorEngine {
     pub fn new() -> Self {
         Self {
             client: OllamaClient::new("http://localhost:11434"),
+            embeddings_enabled: true,
+        }
+    }
+
+    pub fn from_config(ai: &AiConfig, usage: Option<Arc<UsageCounters>>) -> Self {
+        let mut client = OllamaClient::with_usage(&ai.ollama_url, usage);
+        client.llm_model = ai.ollama_model.clone();
+        client.embed_model = ai.embed_model.clone();
+        Self {
+            client,
+            embeddings_enabled: ai.embeddings_enabled,
         }
     }
 }
@@ -35,6 +49,10 @@ impl SearchEngine for VectorEngine {
     ) -> Result<Vec<RankedFile>, String> {
         let query = query.trim();
         if query.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        if !self.embeddings_enabled {
             return Ok(Vec::new());
         }
 
@@ -163,10 +181,22 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn disabled_embeddings_return_successful_empty() {
+        let conn = setup();
+        let engine = VectorEngine {
+            client: OllamaClient::new("http://localhost:1"),
+            embeddings_enabled: false,
+        };
+        let result = engine.search(&conn, "hello", &SearchFilters::default()).await;
+        assert_eq!(result.unwrap().len(), 0);
+    }
+
+    #[tokio::test]
     async fn ollama_down_propagates_error() {
         let conn = setup();
         let engine = VectorEngine {
             client: OllamaClient::new("http://localhost:1"),
+            embeddings_enabled: true,
         };
         let result = engine.search(&conn, "hello", &SearchFilters::default()).await;
         assert!(result.is_err(), "expected an error when Ollama is unreachable");
@@ -186,6 +216,7 @@ mod tests {
         let conn = setup();
         let engine = VectorEngine {
             client: OllamaClient::new(mock_server.uri()),
+            embeddings_enabled: true,
         };
         let result = engine.search(&conn, "hello", &SearchFilters::default()).await;
         assert_eq!(result.unwrap().len(), 0);
@@ -208,6 +239,7 @@ mod tests {
 
         let engine = VectorEngine {
             client: OllamaClient::new(mock_server.uri()),
+            embeddings_enabled: true,
         };
         let result = engine.search(&conn, "hello", &SearchFilters::default()).await;
         let ranked = result.unwrap();
@@ -232,6 +264,7 @@ mod tests {
 
         let engine = VectorEngine {
             client: OllamaClient::new(mock_server.uri()),
+            embeddings_enabled: true,
         };
         let filters = SearchFilters {
             extensions: vec!["txt".to_string()],

@@ -7,12 +7,12 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { useEffect, useState } from 'react'
-import { copyToClipboard, formatBytes } from '@/lib/utils'
+import { formatBytes } from '@/lib/utils'
 import { useConfigStore } from '@/stores/config-store'
 import { Field, FieldLabel } from './ui/field'
 import { useUIStore } from '@/stores/ui-store'
 import { Button } from './ui/button'
-import { BugIcon, CopyIcon } from 'lucide-react'
+import { BugIcon } from 'lucide-react'
 import KeyboardShortcut from './keyboard-shortcut'
 
 type DebugInfo = {
@@ -59,7 +59,7 @@ export default function DebugMenu() {
           </Button>
         }
       ></DialogTrigger>
-      <DialogContent className="min-w-1/2 min-h-1/2 flex flex-col">
+      <DialogContent className="scrollbar-hidden flex min-h-1/2 min-w-1/2 max-h-[calc(100vh-8rem)] flex-col overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Debug</DialogTitle>
         </DialogHeader>
@@ -76,11 +76,11 @@ export default function DebugMenu() {
         <Field>
           <FieldLabel className="flex gap-2">
             Config{' '}
-            <Button onClick={() => copyToClipboard(JSON.stringify(config, null, 2))} size="icon-xs">
+            {/* <Button onClick={() => copyToClipboard(JSON.stringify(config, null, 2))} size="icon-xs">
               <CopyIcon />
-            </Button>
+            </Button> */}
           </FieldLabel>
-          <pre className="border-border border-2 p-2 rounded-(--radius)">
+          <pre className="scrollbar-hidden max-h-[40vh] break-all overflow-y-auto rounded-(--radius) border-2 border-border p-2 whitespace-pre-wrap">
             <code>{JSON.stringify(config, null, 2)}</code>
           </pre>
         </Field>

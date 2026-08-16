@@ -5,7 +5,6 @@ import AppSidebar from './components/sidebar'
 import { useConfigStore } from './stores/config-store'
 import { applyTheme } from './lib/theme'
 import SearchBar from './components/search-bar'
-import { Button } from './components/ui/button'
 import { TooltipProvider } from './components/ui/tooltip'
 import { useKeyboardShortcuts } from './lib/shortcuts'
 
