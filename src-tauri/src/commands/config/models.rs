@@ -53,6 +53,7 @@ pub struct IndexingConfig {
     pub excluded_folders: Vec<String>,
     pub excluded_extensions: Vec<String>,
     pub excluded_path_patterns: Vec<String>,
+    pub ignore_hidden: bool,
 }
 
 impl Default for Config {
@@ -78,6 +79,7 @@ impl Default for Config {
                 excluded_folders: vec![],
                 excluded_extensions: vec![],
                 excluded_path_patterns: vec![],
+                ignore_hidden: true,
             },
         }
     }
@@ -96,6 +98,7 @@ mod tests {
         assert!(config.indexing.excluded_folders.is_empty());
         assert!(config.indexing.excluded_extensions.is_empty());
         assert!(config.indexing.excluded_path_patterns.is_empty());
+        assert!(config.indexing.ignore_hidden);
     }
 
     #[test]
@@ -136,8 +139,14 @@ mod tests {
 
     #[test]
     fn ai_provider_serializes_as_plain_string() {
-        assert_eq!(serde_json::to_string(&AiProvider::Ollama).unwrap(), "\"Ollama\"");
-        assert_eq!(serde_json::to_string(&AiProvider::Custom).unwrap(), "\"Custom\"");
+        assert_eq!(
+            serde_json::to_string(&AiProvider::Ollama).unwrap(),
+            "\"Ollama\""
+        );
+        assert_eq!(
+            serde_json::to_string(&AiProvider::Custom).unwrap(),
+            "\"Custom\""
+        );
         let provider: AiProvider = serde_json::from_str("\"Custom\"").unwrap();
         assert_eq!(provider, AiProvider::Custom);
     }

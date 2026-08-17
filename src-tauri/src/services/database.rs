@@ -8,7 +8,6 @@ pub struct DbState {
     pub conn: std::sync::Mutex<Connection>,
 }
 
-// Default database table
 #[derive(Debug)]
 pub struct DbContent {
     pub file_path: String,
@@ -65,16 +64,12 @@ pub fn init_database(app_handle: &AppHandle) -> Result<(Connection, PathBuf)> {
             conn.execute("PRAGMA user_version = 1;", [])?;
         }
 
-        1 => {
-            // Database is already up to date.
-        }
+        1 => {}
 
         _ => {
             panic!("Unknown database version: {}", version);
         }
     }
-
-    //println!("Database path: {}", &db_path.display());
 
     Ok((conn, db_path))
 }

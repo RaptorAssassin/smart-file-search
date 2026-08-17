@@ -61,6 +61,12 @@ pub async fn ai_process_file(
         PipelineKind::Audio | PipelineKind::Video | PipelineKind::Unsupported => {}
     }
 
+    // Persist the extracted text before any AI work so content search keeps
+    // working even when the model calls below fail (Ollama down, bad replies).
+    if !content_text.is_empty() {
+        persist_content(app_handle, row_id, &content_text).await?;
+    }
+
     let ai_config = app_handle
         .try_state::<AppState>()
         .map(|state| state.config_manager.config.read().unwrap().clone().settings.ai)
@@ -70,16 +76,25 @@ pub async fn ai_process_file(
         .try_state::<Arc<UsageCounters>>()
         .map(|state| Arc::clone(&state));
 
+    // Keyword/summary/embedding generation is best-effort: a failure never
+    // discards the content already persisted above. Failures are recorded so
+    // the row is re-queued on the next startup to fill in the AI fields.
     let mut keywords = Vec::new();
     let mut summary = String::new();
+    let mut ai_errors: Vec<String> = Vec::new();
+
     if let Some(text) = &model_text {
-        match ai_config.provider {
+        let result: Result<(Vec<String>, String), String> = match ai_config.provider {
             AiProvider::Ollama => {
                 let mut client = OllamaClient::with_usage(&ai_config.ollama_url, usage.clone());
                 client.llm_model = ai_config.ollama_model.clone();
                 client.embed_model = ai_config.embed_model.clone();
-                keywords = client.generate_keywords(text).await?;
-                summary = client.generate_summary(text).await?;
+                async {
+                    let keywords = client.generate_keywords(text).await?;
+                    let summary = client.generate_summary(text).await?;
+                    Ok::<_, String>((keywords, summary))
+                }
+                .await
             }
             AiProvider::Custom => {
                 let client = OpenAiClient::with_usage(
@@ -88,34 +103,45 @@ pub async fn ai_process_file(
                     &ai_config.custom_model,
                     usage.clone(),
                 );
-                keywords = client.generate_keywords(text).await?;
-                summary = client.generate_summary(text).await?;
+                async {
+                    let keywords = client.generate_keywords(text).await?;
+                    let summary = client.generate_summary(text).await?;
+                    Ok::<_, String>((keywords, summary))
+                }
+                .await
             }
+        };
+        match result {
+            Ok((kw, sum)) => {
+                keywords = kw;
+                summary = sum;
+            }
+            Err(err) => ai_errors.push(err),
         }
     }
 
-    let embed_client = if ai_config.embeddings_enabled {
+    let mut embedding: Vec<f32> = Vec::new();
+    if ai_config.embeddings_enabled {
         let mut client = OllamaClient::with_usage(&ai_config.ollama_url, usage);
         client.llm_model = ai_config.ollama_model.clone();
         client.embed_model = ai_config.embed_model.clone();
-        Some(client)
-    } else {
-        None
-    };
 
-    let embedding = if let Some(client) = embed_client {
-        if let Some(text) = &model_text {
-            client.generate_embedding(text).await?
+        let attempt: Result<Vec<f32>, String> = if let Some(text) = &model_text {
+            client.generate_embedding(text).await
         } else if let Some(image) = &image_path {
-            client
-                .generate_embedding_from_image(&image_to_base64(image)?)
-                .await?
+            match image_to_base64(image) {
+                Ok(b64) => client.generate_embedding_from_image(&b64).await,
+                Err(err) => Err(err),
+            }
         } else {
-            Vec::new()
+            Ok(Vec::new())
+        };
+
+        match attempt {
+            Ok(vec) => embedding = vec,
+            Err(err) => ai_errors.push(err),
         }
-    } else {
-        Vec::new()
-    };
+    }
 
     update_row(
         app_handle,
@@ -125,7 +151,32 @@ pub async fn ai_process_file(
         &keywords,
         &embedding,
     )
-    .await
+    .await?;
+
+    if let Some(err) = ai_errors.first() {
+        mark_error(app_handle, row_id, err).await?;
+    }
+
+    Ok(())
+}
+
+/// Writes the extracted text into the row so FTS search can find it even if
+/// the AI enrichment steps fail later.
+async fn persist_content(
+    app_handle: &AppHandle,
+    row_id: i64,
+    content_text: &str,
+) -> Result<(), String> {
+    let state = app_handle
+        .try_state::<DbState>()
+        .ok_or_else(|| "Database state not available".to_string())?;
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE files SET content_text = ?1 WHERE id = ?2",
+        params![content_text, row_id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 /// Marks a file as failed so it isn't picked up again.

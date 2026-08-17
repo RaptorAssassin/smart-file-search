@@ -101,242 +101,255 @@ export default function SettingsMenu() {
           </Button>
         }
       />
-      <DialogContent className="sm:max-w-[28rem]">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Settings</DialogTitle>
+          <DialogTitle className="text-lg">Settings</DialogTitle>
         </DialogHeader>
         <div className="scrollbar-hidden max-h-[calc(100vh-12rem)] overflow-y-auto">
-          {/* Models */}
-          <FieldSet>
-            <FieldLegend>Models</FieldLegend>
-            <Field orientation="responsive">
-              <FieldLabel>Provider</FieldLabel>
-              <FieldContent>
-                <Select
-                  items={[
-                    { label: 'Ollama', value: 'Ollama' },
-                    { label: 'Custom', value: 'Custom' },
-                  ]}
-                  value={provider}
-                  onValueChange={(value) => updateAi({ provider: value as AiProvider })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a provider" />
-                  </SelectTrigger>
-                  <SelectContent alignItemWithTrigger={false}>
-                    <SelectGroup>
-                      <SelectItem value="Ollama">Ollama</SelectItem>
-                      <SelectItem value="Custom">Custom</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </FieldContent>
-            </Field>
-            {provider === 'Ollama' && (
-              <>
+          <div className="flex flex-col gap-6">
+            {/* Models */}
+            <div className="rounded-lg border p-4">
+              <FieldSet>
+                <FieldLegend>Models</FieldLegend>
                 <Field orientation="responsive">
-                  <FieldLabel>Ollama URL</FieldLabel>
-                  <FieldContent>
-                    <div className="flex gap-2">
-                      <Input
-                        value={ollamaUrl}
-                        onChange={(e) => updateAi({ ollama_url: e.target.value })}
-                        placeholder={DEFAULT_OLLAMA_URL}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        title="Reset to default"
-                        aria-label="Reset Ollama URL"
-                        onClick={() => updateAi({ ollama_url: DEFAULT_OLLAMA_URL })}
-                      >
-                        <RotateCcw />
-                      </Button>
-                    </div>
-                  </FieldContent>
-                </Field>
-                <Field orientation="responsive">
-                  <FieldLabel>Model</FieldLabel>
+                  <FieldLabel>Provider</FieldLabel>
                   <FieldContent>
                     <Select
                       items={[
-                        ...RECOMMENDED_MODELS.map((model) => ({ label: model, value: model })),
-                        { label: 'Custom', value: 'custom' },
+                        { label: 'Ollama (Recommended)', value: 'Ollama' },
+                        { label: 'Custom', value: 'Custom' },
                       ]}
-                      value={isCustomModel ? 'custom' : ollamaModel}
-                      onValueChange={(value) => {
-                        if (value === 'custom') {
-                          updateAi({ ollama_model_custom: true })
-                        } else {
-                          updateAi({ ollama_model: value ?? '', ollama_model_custom: false })
-                        }
-                      }}
+                      value={provider}
+                      onValueChange={(value) => updateAi({ provider: value as AiProvider })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a model" />
+                        <SelectValue placeholder="Select a provider" />
                       </SelectTrigger>
                       <SelectContent alignItemWithTrigger={false}>
                         <SelectGroup>
-                          {RECOMMENDED_MODELS.map((model) => (
-                            <SelectItem key={model} value={model}>
-                              {model}
-                            </SelectItem>
-                          ))}
-                          <SelectItem value="custom">Custom</SelectItem>
+                          <SelectItem value="Ollama">Ollama</SelectItem>
+                          <SelectItem value="Custom">Custom</SelectItem>
                         </SelectGroup>
                       </SelectContent>
                     </Select>
-                    {isCustomModel && (
-                      <Input
-                        value={ollamaModel}
-                        onChange={(e) => updateAi({ ollama_model: e.target.value })}
-                        placeholder={DEFAULT_OLLAMA_MODEL}
-                      />
-                    )}
-                    {isCustomModel && (
-                      <FieldDescription>
-                        Enter any Ollama model installed locally. To install a new model, make sure
-                        you got Ollama installed and run <code>ollama pull &lt;model-name&gt;</code>
-                      </FieldDescription>
-                    )}
                   </FieldContent>
                 </Field>
-              </>
-            )}
-            {provider === 'Custom' && (
-              <>
-                <Field orientation="responsive">
-                  <FieldLabel>Endpoint</FieldLabel>
-                  <FieldContent>
-                    <Input
-                      value={customEndpoint}
-                      onChange={(e) => updateAi({ custom_endpoint: e.target.value })}
-                      placeholder="https://api.openai.com/v1"
+                {provider === 'Ollama' && (
+                  <>
+                    <Field orientation="responsive">
+                      <FieldLabel>Ollama URL</FieldLabel>
+                      <FieldContent>
+                        <div className="flex gap-2">
+                          <Input
+                            value={ollamaUrl}
+                            onChange={(e) => updateAi({ ollama_url: e.target.value })}
+                            placeholder={DEFAULT_OLLAMA_URL}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            title="Reset to default"
+                            aria-label="Reset Ollama URL"
+                            onClick={() => updateAi({ ollama_url: DEFAULT_OLLAMA_URL })}
+                          >
+                            <RotateCcw />
+                          </Button>
+                        </div>
+                      </FieldContent>
+                    </Field>
+                    <Field orientation="responsive">
+                      <FieldLabel>Model</FieldLabel>
+                      <FieldContent>
+                        <Select
+                          items={[
+                            ...RECOMMENDED_MODELS.map((model) => ({ label: model, value: model })),
+                            { label: 'Custom', value: 'custom' },
+                          ]}
+                          value={isCustomModel ? 'custom' : ollamaModel}
+                          onValueChange={(value) => {
+                            if (value === 'custom') {
+                              updateAi({ ollama_model_custom: true })
+                            } else {
+                              updateAi({ ollama_model: value ?? '', ollama_model_custom: false })
+                            }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a model" />
+                          </SelectTrigger>
+                          <SelectContent alignItemWithTrigger={false}>
+                            <SelectGroup>
+                              {RECOMMENDED_MODELS.map((model) => (
+                                <SelectItem key={model} value={model}>
+                                  {model}
+                                </SelectItem>
+                              ))}
+                              <SelectItem value="custom">Custom</SelectItem>
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                        {isCustomModel && (
+                          <Input
+                            value={ollamaModel}
+                            onChange={(e) => updateAi({ ollama_model: e.target.value })}
+                            placeholder={DEFAULT_OLLAMA_MODEL}
+                          />
+                        )}
+                        {isCustomModel && (
+                          <FieldDescription>
+                            Enter any Ollama model installed locally. To install a new model, make
+                            sure you got Ollama installed and run{' '}
+                            <code>ollama pull &lt;model-name&gt;</code>
+                          </FieldDescription>
+                        )}
+                      </FieldContent>
+                    </Field>
+                  </>
+                )}
+                {provider === 'Custom' && (
+                  <>
+                    <Field orientation="responsive">
+                      <FieldLabel>Endpoint</FieldLabel>
+                      <FieldContent>
+                        <Input
+                          value={customEndpoint}
+                          onChange={(e) => updateAi({ custom_endpoint: e.target.value })}
+                          placeholder="https://api.openai.com/v1"
+                        />
+                        <FieldDescription>
+                          Open-AI compatible endpoint. API usage might get high for users with many
+                          files, so be careful and set limits.
+                        </FieldDescription>
+                      </FieldContent>
+                    </Field>
+                    <Field orientation="responsive">
+                      <FieldLabel>API Key</FieldLabel>
+                      <FieldContent>
+                        <Input
+                          type="password"
+                          value={customApiKey}
+                          onChange={(e) => updateAi({ custom_api_key: e.target.value })}
+                          placeholder="sk-..."
+                        />
+                      </FieldContent>
+                    </Field>
+                    <Field orientation="responsive">
+                      <FieldLabel>Model</FieldLabel>
+                      <FieldContent>
+                        <Input
+                          value={customModel}
+                          onChange={(e) => updateAi({ custom_model: e.target.value })}
+                          placeholder="eg. gpt-4o-mini"
+                        />
+                      </FieldContent>
+                    </Field>
+                  </>
+                )}
+                <FieldSet className="mt-1 rounded-md bg-muted/40 p-3">
+                  <FieldLegend variant="label">Embeddings</FieldLegend>
+                  <Field orientation="horizontal">
+                    <Checkbox
+                      id="enable-embeddings"
+                      name="enable-embeddings"
+                      className="h-4 w-4"
+                      checked={embeddingsEnabled}
+                      onCheckedChange={(value) => updateAi({ embeddings_enabled: value === true })}
                     />
-                    <FieldDescription>
-                      Open-AI compatible endpoint. API usage might get high for users with many
-                      files, so be careful and set limits.
-                    </FieldDescription>
-                  </FieldContent>
+                    <FieldLabel htmlFor="enable-embeddings">Enable embeddings</FieldLabel>
+                  </Field>
+                  <FieldDescription>
+                    Embeddings always use <code>{EMBED_MODEL}</code> via Ollama.
+                  </FieldDescription>
+                </FieldSet>
+              </FieldSet>
+            </div>
+            {/* UI */}
+            <div className="rounded-lg border p-4">
+              <FieldSet>
+                <FieldLegend>UI</FieldLegend>
+                <Field>
+                  <FieldLabel>App Theme</FieldLabel>
+                  <Select
+                    items={[
+                      { label: 'Light', value: 'Light' },
+                      { label: 'Dark', value: 'Dark' },
+                      { label: 'System', value: 'System' },
+                    ]}
+                    value={selectedTheme}
+                    onValueChange={(value) => handleThemeChange(value as Theme)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a theme" />
+                    </SelectTrigger>
+                    <SelectContent alignItemWithTrigger={false}>
+                      <SelectGroup>
+                        <SelectItem value="System">System</SelectItem>
+                        <SelectItem value="Dark">Dark</SelectItem>
+                        <SelectItem value="Light">Light</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
                 </Field>
-                <Field orientation="responsive">
-                  <FieldLabel>API Key</FieldLabel>
-                  <FieldContent>
-                    <Input
-                      type="password"
-                      value={customApiKey}
-                      onChange={(e) => updateAi({ custom_api_key: e.target.value })}
-                      placeholder="sk-..."
-                    />
-                  </FieldContent>
+                {/* Disable Keyboard Shortcut Hints */}
+                <Field orientation="horizontal">
+                  <Checkbox
+                    id="disable-keyboard-shortcut-hints"
+                    name="disable-keyboard-shortcut-hints"
+                    className="h-4 w-4"
+                    checked={config?.settings?.disable_keyboard_shortcut_hints ?? false}
+                    onCheckedChange={(value) => {
+                      if (!config) return
+
+                      const disableKeyboardShortcutHints = value === true
+
+                      setConfig({
+                        ...config,
+                        settings: {
+                          ...(config.settings ?? {}),
+                          disable_keyboard_shortcut_hints: disableKeyboardShortcutHints,
+                        },
+                      })
+
+                      void saveConfig()
+                    }}
+                  />
+                  <FieldLabel>Disable Keyboard Shortcut Hints</FieldLabel>
                 </Field>
-                <Field orientation="responsive">
-                  <FieldLabel>Model</FieldLabel>
-                  <FieldContent>
-                    <Input
-                      value={customModel}
-                      onChange={(e) => updateAi({ custom_model: e.target.value })}
-                      placeholder="eg. gpt-4o-mini"
-                    />
-                  </FieldContent>
+              </FieldSet>
+            </div>
+            {/* Developer */}
+            <div className="rounded-lg border p-4">
+              <FieldSet>
+                <FieldLegend>Developer</FieldLegend>
+                {/* Enable Debug Menu */}
+                <Field orientation="horizontal">
+                  <Checkbox
+                    id="enable-debug-menu"
+                    name="enable-debug-menu"
+                    className="h-4 w-4"
+                    checked={config?.settings?.enable_debug_menu ?? false}
+                    onCheckedChange={(value) => {
+                      if (!config) return
+
+                      const enableDebugMenu = value === true
+
+                      setConfig({
+                        ...config,
+                        settings: {
+                          ...(config.settings ?? {}),
+                          enable_debug_menu: enableDebugMenu,
+                        },
+                      })
+
+                      void saveConfig()
+                    }}
+                  />
+                  <FieldLabel htmlFor="enable-debug-menu">Enable Debug Menu</FieldLabel>
                 </Field>
-              </>
-            )}
-            <FieldSet>
-              <FieldLegend variant="label">Embeddings</FieldLegend>
-              <Field orientation="horizontal">
-                <Checkbox
-                  id="enable-embeddings"
-                  name="enable-embeddings"
-                  className="h-4 w-4"
-                  checked={embeddingsEnabled}
-                  onCheckedChange={(value) => updateAi({ embeddings_enabled: value === true })}
-                />
-                <FieldLabel htmlFor="enable-embeddings">Enable embeddings</FieldLabel>
-              </Field>
-              <FieldDescription>
-                Embeddings always use <code>{EMBED_MODEL}</code> via Ollama.
-              </FieldDescription>
-            </FieldSet>
-          </FieldSet>
-          {/* UI */}
-          <FieldSet>
-            <FieldLegend>UI</FieldLegend>
-            <Field>
-              <FieldLabel>App Theme</FieldLabel>
-              <Select
-                items={[
-                  { label: 'Light', value: 'Light' },
-                  { label: 'Dark', value: 'Dark' },
-                  { label: 'System', value: 'System' },
-                ]}
-                value={selectedTheme}
-                onValueChange={(value) => handleThemeChange(value as Theme)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a theme" />
-                </SelectTrigger>
-                <SelectContent alignItemWithTrigger={false}>
-                  <SelectGroup>
-                    <SelectItem value="System">System</SelectItem>
-                    <SelectItem value="Dark">Dark</SelectItem>
-                    <SelectItem value="Light">Light</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </Field>
-            {/* Disable Keyboard Shortcut Hints */}
-            <Field orientation="horizontal">
-              <Checkbox
-                id="disable-keyboard-shortcut-hints"
-                name="disable-keyboard-shortcut-hints"
-                className="h-4 w-4"
-                checked={config?.settings?.disable_keyboard_shortcut_hints ?? false}
-                onCheckedChange={(value) => {
-                  if (!config) return
-
-                  const disableKeyboardShortcutHints = value === true
-
-                  setConfig({
-                    ...config,
-                    settings: {
-                      ...(config.settings ?? {}),
-                      disable_keyboard_shortcut_hints: disableKeyboardShortcutHints,
-                    },
-                  })
-
-                  void saveConfig()
-                }}
-              />
-              <FieldLabel>Disable Keyboard Shortcut Hints</FieldLabel>
-            </Field>
-            {/* Enable Debug Menu */}
-            <Field orientation="horizontal">
-              <Checkbox
-                id="enable-debug-menu"
-                name="enable-debug-menu"
-                className="h-4 w-4"
-                checked={config?.settings?.enable_debug_menu ?? false}
-                onCheckedChange={(value) => {
-                  if (!config) return
-
-                  const enableDebugMenu = value === true
-
-                  setConfig({
-                    ...config,
-                    settings: {
-                      ...(config.settings ?? {}),
-                      enable_debug_menu: enableDebugMenu,
-                    },
-                  })
-
-                  void saveConfig()
-                }}
-              />
-              <FieldLabel htmlFor="enable-debug-menu">Enable Debug Menu</FieldLabel>
-            </Field>
-          </FieldSet>
+              </FieldSet>
+            </div>
+          </div>
         </div>
         <DialogFooter className="sm:justify-start">
           <Button variant="outline">

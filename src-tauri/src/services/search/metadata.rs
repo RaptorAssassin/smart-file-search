@@ -30,6 +30,8 @@ impl SearchEngine for MetadataEngine {
             return Ok(Vec::new());
         }
 
+        let terms: Vec<&str> = query.split_whitespace().collect();
+
         let (filter_sql, filter_params) = filters.to_where_sql();
         let where_clause = if filter_sql.is_empty() {
             String::new()
@@ -37,29 +39,58 @@ impl SearchEngine for MetadataEngine {
             format!(" WHERE {filter_sql}")
         };
 
+        // One tier CASE per term; a term matches when its tier < 4. Any matching
+        // term qualifies the file (OR), but files matching more terms rank first,
+        // then by how closely each term matches (sum of tiers).
+        let tier_expr = "CASE
+                WHEN lower(file_name) = lower(?) THEN 0
+                WHEN lower(file_name) LIKE lower(?) || '%' THEN 1
+                WHEN instr(lower(file_name), lower(?)) > 0 THEN 2
+                WHEN instr(lower(
+                    IFNULL(file_path, '') || IFNULL(extension, '') ||
+                    IFNULL(mime_type, '') || IFNULL(category, '')
+                ), lower(?)) > 0 THEN 3
+                ELSE 4
+            END";
+
+        let tier_cols: Vec<String> = (0..terms.len()).map(|i| format!("tier_{i}")).collect();
+        let tiers = (0..terms.len())
+            .map(|i| format!("{tier_expr} AS tier_{i}"))
+            .collect::<Vec<_>>()
+            .join(",\n");
+        let or_match = tier_cols
+            .iter()
+            .map(|col| format!("{col} < 4"))
+            .collect::<Vec<_>>()
+            .join(" OR ");
+        let match_count = tier_cols
+            .iter()
+            .map(|col| format!("({col} < 4)"))
+            .collect::<Vec<_>>()
+            .join(" + ");
+        let tier_sum = tier_cols
+            .iter()
+            .map(|col| format!("CASE WHEN {col} < 4 THEN {col} ELSE 0 END"))
+            .collect::<Vec<_>>()
+            .join(" + ");
+
         let sql = format!(
             "
             SELECT id FROM (
                 SELECT id, modified_at,
-                    CASE
-                        WHEN lower(file_name) = lower(?) THEN 0
-                        WHEN lower(file_name) LIKE lower(?) || '%' THEN 1
-                        WHEN instr(lower(file_name), lower(?)) > 0 THEN 2
-                        WHEN instr(lower(
-                            IFNULL(file_path, '') || IFNULL(extension, '') ||
-                            IFNULL(mime_type, '') || IFNULL(category, '')
-                        ), lower(?)) > 0 THEN 3
-                        ELSE 4
-                    END AS tier
+                    {tiers}
                 FROM files
                 {where_clause}
-            ) WHERE tier < 4
-            ORDER BY tier ASC, modified_at DESC, id ASC
+            ) WHERE {or_match}
+            ORDER BY {match_count} DESC, {tier_sum} ASC, modified_at DESC, id ASC
             LIMIT {MAX_MATCHES}
             "
         );
 
-        let mut params: Vec<Value> = vec![Value::Text(query.to_string()); MATCH_PARAM_COUNT];
+        let mut params: Vec<Value> = Vec::new();
+        for term in &terms {
+            params.extend(vec![Value::Text(term.to_string()); MATCH_PARAM_COUNT]);
+        }
         params.extend(filter_params);
 
         let conn = conn.lock().map_err(|e| e.to_string())?;
@@ -196,6 +227,16 @@ mod tests {
         };
         let result = run(&conn, "report", filters).await;
         assert_eq!(ids(&result), vec![2]);
+    }
+
+    #[tokio::test]
+    async fn multi_term_matches_any_term_and_ranks_more_matches_first() {
+        let conn = setup();
+        insert(&*conn.lock().unwrap(), "annual-report.txt", "/a/annual-report.txt", "txt", None, "2024-01-01T00:00:00Z");
+        insert(&*conn.lock().unwrap(), "report.txt", "/a/report.txt", "txt", None, "2024-02-01T00:00:00Z");
+        insert(&*conn.lock().unwrap(), "notes.md", "/a/notes.md", "md", None, "2024-03-01T00:00:00Z");
+        let result = run(&conn, "annual report", SearchFilters::default()).await;
+        assert_eq!(ids(&result), vec![1, 2]);
     }
 
     #[tokio::test]

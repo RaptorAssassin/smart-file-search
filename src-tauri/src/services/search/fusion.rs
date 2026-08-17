@@ -110,7 +110,7 @@ mod tests {
     #[test]
     fn score_matches_rrf_formula() {
         let fused = fuse(&[vote(EngineKind::Metadata, &[5])]);
-        let expected = 1.0 / (K + 1.0);
+        let expected = EngineKind::Metadata.weight() / (K + 1.0);
         assert!((fused[0].score - expected).abs() < 1e-9);
     }
 

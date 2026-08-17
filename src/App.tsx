@@ -7,6 +7,7 @@ import { applyTheme } from './lib/theme'
 import SearchBar from './components/search-bar'
 import { TooltipProvider } from './components/ui/tooltip'
 import { useKeyboardShortcuts } from './lib/shortcuts'
+import FilesSection from './components/files-section'
 
 function App() {
   const config = useConfigStore((state) => state.config)
@@ -51,7 +52,7 @@ function App() {
           <AppSidebar className="flex-1 min-w-50 max-w-80" />
           <main className="relative flex min-w-0 flex-3 flex-col overflow-hidden">
             <SearchBar />
-            <div className="w-full h-full"></div>
+            <FilesSection />
           </main>
         </SidebarProvider>
       </TooltipProvider>

@@ -384,6 +384,33 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn multi_term_query_fuses_filename_and_content_matches() {
+        let conn = setup();
+        let id = {
+            let guard = conn.lock().unwrap();
+            let id = insert_file(&guard, "report.txt", "txt", "2024-01-01T00:00:00Z");
+            insert_fts(&guard, id, "fox jumps over");
+            id
+        };
+
+        let mock_server = MockServer::start().await;
+        embed_mock(&mock_server, 0).await;
+
+        let vector = VectorEngine {
+            client: OllamaClient::new(mock_server.uri()),
+            embeddings_enabled: true,
+        };
+        let response = search(&conn, "report fox", &SearchFilters::default(), 10, &vector)
+            .await
+            .unwrap();
+
+        assert!(
+            response.results.iter().any(|r| r.file_id == id),
+            "expected {id} to surface from metadata + fts votes"
+        );
+    }
+
+    #[tokio::test]
     async fn empty_query_returns_empty_response() {
         let conn = setup();
         let mock_server = MockServer::start().await;

@@ -140,26 +140,87 @@ mod tests {
     }
 
     #[test]
+    fn root_anchored_globs_prune_dir_and_contents_but_not_user_folders() {
+        fn g(patterns: &[&str], path: &str) -> bool {
+            let bl = blacklist(&[], &[], patterns);
+            bl.should_skip_path(Path::new(path))
+        }
+        // {/X,/X/**} matches the bare dir (so the walker prunes it) ...
+        assert!(g(&["{/Windows,/Windows/**}"], "/Windows"));
+        // ... and everything under it ...
+        assert!(g(&["{/Windows,/Windows/**}"], "/Windows\\System32\\ntdll.dll"));
+        assert!(g(&["{/Windows,/Windows/**}"], "/Windows/x.dll"));
+        // ... but never a same-named folder inside a user profile.
+        assert!(!g(&["{/Windows,/Windows/**}"], "/Users/me/Windows/x.dll"));
+        assert!(!g(&["{/dev,/dev/**}"], "/Users/me/dev/x"));
+        // {**/Users/Default,...} prunes only the template profile, not other Default folders.
+        assert!(g(&["{**/Users/Default,**/Users/Default/**}"], "/Users/Default"));
+        assert!(g(&["{**/Users/Default,**/Users/Default/**}"], "/Users/Default/Desktop/x.pdf"));
+        assert!(!g(&["{**/Users/Default,**/Users/Default/**}"], "/Users/Karl/Default/x"));
+        // Root-anchored system dirs only match the root, not a user "media"/"dev" folder.
+        assert!(g(&["{/media,/media/**}"], "/media/backup/x"));
+        assert!(!g(&["{/media,/media/**}"], "/Users/me/media/photos/x"));
+    }
+
+    #[test]
     fn bundled_blacklist_skips_system_and_trash_paths() {
         let bl = bundled_blacklist();
         for p in [
-            "C:\\Windows\\System32\\ntdll.dll",
-            "C:\\Windows\\WinSxS\\amd64_microsoft_1.dll",
-            "C:\\Program Files\\Common Files\\a.dll",
-            "C:\\Program Files (x86)\\x\\y.exe",
-            "C:\\ProgramData\\foo\\bar.dat",
-            "C:\\Users\\Karl\\AppData\\Local\\Temp\\a.tmp",
-            "C:\\Users\\Karl\\AppData\\Roaming\\Mozilla\\prefs.js",
-            "C:\\$Recycle.Bin\\S-1-5-21-1\\$R123",
-            "C:\\Users\\Karl\\Documents\\node_modules\\lodash\\index.js",
-            "C:\\Users\\Karl\\proj\\__pycache__\\x.pyc",
-            "C:\\Users\\Karl\\proj\\.git\\config",
-            "C:\\Users\\Karl\\proj\\dist\\bundle.js",
-            "C:\\Users\\Karl\\Pictures\\thumbs.db",
-            "C:\\Users\\Karl\\Desktop\\desktop.ini",
-            "C:\\Users\\Karl\\Downloads\\installer.exe",
-            "C:\\Users\\Karl\\Downloads\\patch.dmp",
-            "C:\\Users\\Karl\\proj\\file.tmp",
+            "/Windows\\System32\\ntdll.dll",
+            "/Windows\\WinSxS\\amd64_microsoft_1.dll",
+            "/Windows\\SystemApps\\x\\app.json",
+            "/Windows.old\\Windows\\System32\\x.dll",
+            "/Program Files\\Common Files\\a.dll",
+            "/Program Files (x86)\\x\\y.exe",
+            "/ProgramData\\foo\\bar.dat",
+            "/PerfLogs\\x.log",
+            "/Recovery\\Winre.wim",
+            "/RecoveryImage\\Install.wim",
+            "/System Reserved\\bootmgr",
+            "/Intel\\x\\y.bin",
+            "/AMD\\x\\y.bin",
+            "/NVIDIA\\x\\y.dll",
+            "/XboxGames\\Minecraft\\content\\x.json",
+            "/Drivers\\Realtek\\setup.exe",
+            "/OneDriveTemp\\x",
+            "/inetpub\\wwwroot\\x.html",
+            "/OEM\\Lenovo_Hotkeys\\setup.exe",
+            "/Users\\Karl\\AppData\\Local\\Temp\\a.tmp",
+            "/Users\\Karl\\AppData\\Roaming\\Mozilla\\prefs.js",
+            "/$Recycle.Bin\\S-1-5-21-1\\$R123",
+            "/System Volume Information\\x.dat",
+            "/Users\\Karl\\Documents\\node_modules\\lodash\\index.js",
+            "/Users\\Karl\\proj\\__pycache__\\x.pyc",
+            "/Users\\Karl\\proj\\.git\\config",
+            "/Users\\Karl\\proj\\dist\\bundle.js",
+            "/Users\\Karl\\proj\\vendor\\x\\y.go",
+            "/Users\\Karl\\proj\\site-packages\\pip\\x.py",
+            "/Users\\Karl\\Pictures\\thumbs.db",
+            "/Users\\Karl\\Desktop\\desktop.ini",
+            "/Users\\Karl\\Downloads\\installer.exe",
+            "/Users\\Karl\\Downloads\\patch.dmp",
+            "/Users\\Karl\\proj\\file.tmp",
+            "/Users\\Karl\\proj\\archive.zip",
+            "/Python314\\Lib\\json\\__init__.py",
+            "/Users\\Karl\\.ollama\\models\\blobs\\sha256-abc",
+            "/Users\\Karl\\.local\\share\\opencode\\opencode.db",
+            "/Users\\Karl\\.continue\\index\\main.ts",
+            "/Users\\Karl\\.config\\opencode\\config.json",
+            "/Users\\Karl\\.wakatime\\wakatime.log",
+            "/Users\\Karl\\.copilot\\config.json",
+            "/Users\\Karl\\.bun\\install\\cache\\x\\y.txt",
+            "/Users\\Karl\\NTUSER.DAT",
+            "/Users\\Karl\\NTUSER.DAT.LOG1",
+            "/Users\\Default\\NTUSER.DAT",
+            "/Users\\Default\\Desktop\\Serviceheft.pdf",
+            "/System\\Library\\x.dylib",
+            "/Volumes\\Data\\x",
+            "/proc\\cpuinfo",
+            "/dev\\sda1",
+            "/mnt\\data\\x",
+            "/media\\backup\\x",
+            "/tmp\\cleanup\\x",
+            "/snap\\core\\x",
         ] {
             assert!(bl.should_skip_path(Path::new(p)), "expected skip: {p}");
         }
@@ -177,6 +238,10 @@ mod tests {
             "/Users\\Karl\\Documents\\Unity Projects\\test project\\Library\\PackageCache\\com.unity.visualscripting@b4d700247d4b\\Runtime\\EventUnit.cs",
             "/VC_RED.cab",
             "/.GamingRoot",
+            "/Python314\\Lib\\site-packages\\pip\\__init__.py",
+            "/Users\\Karl\\.ollama\\models\\manifests\\registry.ollama.ai\\library\\llama3",
+            "/Users\\Karl\\.bun\\install\\cache\\x\\y.txt",
+            "/Users\\Default\\Desktop\\Serviceheft.pdf",
         ] {
             assert!(bl.should_skip_path(Path::new(p)), "expected skip: {p}");
         }
@@ -190,9 +255,16 @@ mod tests {
             "C:\\Users\\Karl\\Code\\smart-file-search\\src\\main.ts",
             "C:\\Users\\Karl\\Pictures\\vacation\\IMG_2024.jpg",
             "C:\\Users\\Karl\\Documents\\node_modules-notes.txt",
+            "C:\\Users\\Karl\\Documents\\project\\config.yaml",
             "/Users\\Karl\\Documents\\report.pdf",
             "/Users\\Karl\\Downloads\\vacation\\IMG_2024.jpg",
             "/Users\\Karl\\Code\\smart-file-search\\src\\main.ts",
+            "/Users\\Karl\\dev\\src\\main.rs",
+            "/Users\\Karl\\media\\photos\\IMG_1.jpg",
+            "/Users\\Karl\\Documents\\Recovery\\note.txt",
+            "/Users\\Karl\\Documents\\Windows\\config.txt",
+            "/Users\\Karl\\Documents\\Intel\\notes.txt",
+            "/Users\\Karl\\project\\Default\\layout.tsx",
             "/Games\\WarThunder\\content\\base\\res\\ships\\uk_frigate.grp",
         ] {
             assert!(!bl.should_skip_path(Path::new(p)), "expected keep: {p}");

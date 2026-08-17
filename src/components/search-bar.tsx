@@ -1,12 +1,14 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { Button } from './ui/button'
 import { SearchIcon, XIcon } from 'lucide-react'
 import { InputGroup, InputGroupAddon, InputGroupInput } from './ui/input-group'
 import { useUIStore } from '@/stores/ui-store'
+import { useSearchStore } from '@/stores/search-store'
 import KeyboardShortcut from './keyboard-shortcut'
 
 export default function SearchBar() {
-  const [searchQuery, setSearchQuery] = useState('')
+  const searchQuery = useSearchStore((state) => state.searchQuery) ?? ''
+  const setSearchQuery = useSearchStore((state) => state.setSearchQuery)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const setSearchBarFocused = useUIStore((state) => state.setSearchBarFocused)

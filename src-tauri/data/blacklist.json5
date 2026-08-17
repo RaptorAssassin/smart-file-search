@@ -1,6 +1,6 @@
 {
     folder_names: [
-        // Dev / build trash
+        // Dev / build trash (trash by name anywhere, prunes the walk)
         "node_modules",
         ".git",
         ".svn",
@@ -37,10 +37,25 @@
         ".terraform",
         ".serverless",
         "vendor",
+        "bower_components",
+        "site-packages",
+        "Pods",
+        "DerivedData",
+        "xcuserdata",
+        ".build",
+        ".swiftpm",
+        ".angular",
+        ".vercel",
+        ".npm",
+        "temp",
+        "tmp",
+        "logs",
+        "cache",
+        "coverage",
+        "htmlcov",
 
-        // Trash / recycle
+        // Trash / recycle (anywhere)
         "$RECYCLE.BIN",
-        "$Recycle.Bin",
         ".Trash",
         ".Trashes",
         ".Spotlight-V100",
@@ -49,49 +64,29 @@
         "System Volume Information",
         "lost+found",
 
-        // Windows system
-        "Windows",
-        "WinSxS",
-        "SoftwareDistribution",
-        "System32",
-        "SysWOW64",
-        "Program Files",
-        "Program Files (x86)",
-        "ProgramData",
-        "AppData",
-        "PerfLogs",
-        "Windows.old",
-        "$WINDOWS.~BT",
-        "$WINDOWS.~WS",
-        "Recovery",
-        "RecoveryImage",
-        "System Reserved",
-        "Intel",
-        "AMD",
-        "NVIDIA",
-        "XboxGames",
-        "Drivers",
-        "OneDriveTemp",
-
-        // macOS system
-        "System",
-        "Volumes",
-
-        // Linux root dirs
-        "proc",
-        "sys",
-        "dev",
-        "tmp",
-        "run",
-        "mnt",
-        "media",
-
-        // Tool / app caches (anything under a home-dotfolder is regenerable)
+        // Tool / app caches (home dot-folders are regenerable, never user content)
         ".rustup",
         ".lunarclient",
         ".GamingRoot",
+        ".local",
+        ".config",
+        ".ollama",
+        ".continue",
+        ".claude",
+        ".copilot",
+        ".wakatime",
+        ".bun",
+        ".vscode-shared",
+        "IntelGraphicsProfiles",
+
+        // Installed runtimes (analogous to node_modules - not user content)
+        "Python314",
+
+        // Per-user OS state that is always trash regardless of location
+        "AppData",
     ],
     extensions: [
+        // Temp / backup / junk
         "tmp",
         "temp",
         "log",
@@ -110,15 +105,24 @@
         "dmp",
         "mdmp",
         "cache",
+
+        // Compiled / binary artifacts
         "pyc",
         "pyo",
+        "pyd",
         "o",
+        "a",
+        "lo",
+        "lib",
         "pdb",
+        "class",
         "sys",
         "exe",
         "dll",
         "so",
         "dylib",
+
+        // Archives / installers / packages (no searchable content)
         "msi",
         "msu",
         "appx",
@@ -129,70 +133,93 @@
         "rpm",
         "iso",
         "dmg",
+        "apk",
+        "jar",
+        "war",
+        "ear",
+        "whl",
+        "nupkg",
+        "zip",
+        "7z",
+        "rar",
+        "tar",
+        "gz",
+        "tgz",
+        "xz",
+        "bz2",
+        "zst",
     ],
     path_patterns: [
-        // Matches both drive-less roots ("/Windows/...") and drive-prefixed
-        // paths ("C:\\Windows\\..."), since the walker yields paths rooted at "/".
-        "**/Windows/**",
-        "**/Windows.old/**",
-        "**/$WINDOWS.~BT/**",
-        "**/$WINDOWS.~WS/**",
-        "**/Program Files/**",
-        "**/Program Files (x86)/**",
-        "**/ProgramData/**",
-        "**/PerfLogs/**",
-        "**/System Volume Information/**",
-        "**/$Recycle.Bin/**",
-        "**/$RECYCLE.BIN/**",
-        "**/Recovery/**",
-        "**/System Reserved/**",
-        "**/Intel/**",
-        "**/AMD/**",
-        "**/NVIDIA/**",
-        "**/XboxGames/**",
-        "**/Drivers/**",
+        // The walker yields paths rooted at "/" (e.g. "/Windows\\System32\\x.dll").
+        // Root-anchored "{/X,/X/**}" matches the dir itself (so the walk prunes it)
+        // and all of its contents, but NEVER a same-named user folder elsewhere.
+        // Any-depth "**/X/**" is only used for per-user paths (AppData-style).
+
+        // Windows system dirs (root only)
+        "{/Windows,/Windows/**}",
+        "{/Windows.old,/Windows.old/**}",
+        "{/$WINDOWS.~BT,/$WINDOWS.~BT/**}",
+        "{/$WINDOWS.~WS,/$WINDOWS.~WS/**}",
+        "{/Program Files,/Program Files/**}",
+        "{/Program Files (x86),/Program Files (x86)/**}",
+        "{/ProgramData,/ProgramData/**}",
+        "{/PerfLogs,/PerfLogs/**}",
+        "{/Recovery,/Recovery/**}",
+        "{/RecoveryImage,/RecoveryImage/**}",
+        "{/System Reserved,/System Reserved/**}",
+        "{/Intel,/Intel/**}",
+        "{/AMD,/AMD/**}",
+        "{/NVIDIA,/NVIDIA/**}",
+        "{/XboxGames,/XboxGames/**}",
+        "{/Drivers,/Drivers/**}",
+        "{/OneDriveTemp,/OneDriveTemp/**}",
+        "{/inetpub,/inetpub/**}",
+        "{/OEM,/OEM/**}",
+        "{/Temp,/Temp/**}",
+        "/*.cab",
+
+        // Windows root-level system files
         "**/hiberfil.sys",
         "**/pagefile.sys",
         "**/swapfile.sys",
 
-        // Windows root-level installer / Microsoft Gaming leftovers
-        "/.GamingRoot",
-        "/*.cab",
-
         // Windows user-level trash / caches
-        "**/AppData/**",
         "**/Desktop.ini",
         "**/Thumbs.db",
         "**/.DS_Store",
+        "**/NTUSER.DAT*",
+        "{**/Users/Default,**/Users/Default/**}",
 
         // Unity regenerated caches
-        "**/Library/PackageCache/**",
-        "**/Library/ScriptAssemblies/**",
-        "**/Library/PlayerDataCache/**",
-        "**/Library/Artifacts/**",
+        "{**/Library/PackageCache,**/Library/PackageCache/**}",
+        "{**/Library/ScriptAssemblies,**/Library/ScriptAssemblies/**}",
+        "{**/Library/PlayerDataCache,**/Library/PlayerDataCache/**}",
+        "{**/Library/Artifacts,**/Library/Artifacts/**}",
 
         // macOS
-        "**/Library/Caches/**",
-        "**/private/var/**",
-        "/System/**",
-        "/Volumes/**",
-        "/.Trash/**",
-        "/.Trashes/**",
+        "{**/Library/Caches,**/Library/Caches/**}",
+        "{**/private/var,**/private/var/**}",
+        "{/System,/System/**}",
+        "{/Volumes,/Volumes/**}",
+        "{/.Trash,/.Trash/**}",
+        "{/.Trashes,/.Trashes/**}",
 
         // Linux system paths
-        "/proc/**",
-        "/sys/**",
-        "/dev/**",
-        "/run/**",
-        "/tmp/**",
-        "/boot/**",
-        "/etc/**",
-        "/usr/**",
-        "/lib/**",
-        "/lib64/**",
-        "/sbin/**",
-        "/var/**",
-        "/lost+found/**",
-        "/snap/**",
+        "{/proc,/proc/**}",
+        "{/sys,/sys/**}",
+        "{/dev,/dev/**}",
+        "{/run,/run/**}",
+        "{/tmp,/tmp/**}",
+        "{/mnt,/mnt/**}",
+        "{/media,/media/**}",
+        "{/boot,/boot/**}",
+        "{/etc,/etc/**}",
+        "{/usr,/usr/**}",
+        "{/lib,/lib/**}",
+        "{/lib64,/lib64/**}",
+        "{/sbin,/sbin/**}",
+        "{/var,/var/**}",
+        "{/lost+found,/lost+found/**}",
+        "{/snap,/snap/**}",
     ]
 }

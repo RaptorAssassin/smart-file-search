@@ -66,7 +66,8 @@ pub fn run() {
             let blacklist_config = config_manager.blacklist.read().unwrap().clone();
             let blacklist = Arc::new(Blacklist::new(app_handle, blacklist_config.clone())?);
 
-            start_indexing(app_handle.clone(), Arc::clone(&blacklist))?;
+            let ignore_hidden = config_manager.config.read().unwrap().indexing.ignore_hidden;
+            start_indexing(app_handle.clone(), ignore_hidden, Arc::clone(&blacklist))?;
 
             app.manage(services::database::DbState {
                 conn: std::sync::Mutex::new(conn),

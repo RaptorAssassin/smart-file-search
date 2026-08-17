@@ -159,8 +159,7 @@ impl OllamaClient {
 
         self.record_tokens(chat_response.prompt_eval_count, chat_response.eval_count);
 
-        serde_json::from_str(&chat_response.message.content)
-            .map_err(|e| format!("Failed to parse keyword JSON: {}", e))
+        parse_keywords(&chat_response.message.content)
     }
 
     /// Asks the LLM for a one-line summary of a piece of text.
@@ -254,6 +253,20 @@ impl OllamaClient {
 
         Ok(generate_response.response)
     }
+}
+
+/// Extracts a JSON array of strings from a completion reply, tolerating stray
+/// prose or a wrapper object (e.g. `{"keywords": [...]}`) around the array.
+fn parse_keywords(content: &str) -> Result<Vec<String>, String> {
+    let start = content.find('[');
+    let end = content.rfind(']');
+    let json = match (start, end) {
+        (Some(s), Some(e)) if e > s => &content[s..=e],
+        _ => return Err("No JSON array found in keyword reply".to_string()),
+    };
+
+    serde_json::from_str::<Vec<String>>(json)
+        .map_err(|e| format!("Failed to parse keyword JSON: {e}"))
 }
 
 #[cfg(test)]
@@ -388,5 +401,26 @@ mod tests {
 
         let err = client.generate_keywords("hello").await.unwrap_err();
         assert_eq!(err, "Keyword generation not completed");
+    }
+
+    #[tokio::test]
+    async fn keywords_tolerate_wrapper_object() {
+        let mock_server = MockServer::start().await;
+        let client = OllamaClient::new(mock_server.uri());
+
+        Mock::given(method("POST"))
+            .and(path("/api/chat"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "message": {
+                    "role": "assistant",
+                    "content": "{\"keywords\": [\"rust\", \"ai\"]}"
+                },
+                "done": true
+            })))
+            .mount(&mock_server)
+            .await;
+
+        let result = client.generate_keywords("rust and ai").await;
+        assert_eq!(result, Ok(vec!["rust".to_string(), "ai".to_string()]));
     }
 }
