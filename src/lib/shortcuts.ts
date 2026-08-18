@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import { useUIStore } from '@/stores/ui-store'
+import { isMacOS } from '@/lib/platform'
 
-const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+const isMac = isMacOS()
 
 export const modifierKey = () => {
   if (isMac) {

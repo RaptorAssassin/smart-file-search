@@ -1,7 +1,10 @@
-# Tauri + React + Typescript
+# Smart File Search
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+A privacy-first AI-powered desktop tool that lets you actually find what you search for.
+Built with Tauri, Rust and Ollama.
 
-## Recommended IDE Setup
+![App Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FRaptorAssassin%2Fsmart-file-search%2Fmain%2Fpackage.json&query=%24.version&label=Version)
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+<!-- ## Recommended IDE Setup
+
+- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer) -->

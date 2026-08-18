@@ -4,6 +4,7 @@ import { SearchIcon, XIcon } from 'lucide-react'
 import { InputGroup, InputGroupAddon, InputGroupInput } from './ui/input-group'
 import { useUIStore } from '@/stores/ui-store'
 import { useSearchStore } from '@/stores/search-store'
+import { isMacOS } from '@/lib/platform'
 import KeyboardShortcut from './keyboard-shortcut'
 
 export default function SearchBar() {
@@ -18,7 +19,7 @@ export default function SearchBar() {
     if (query.trim() === '') return
   }
 
-  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+  const isMac = isMacOS()
 
   // Focus search bar when Ctrl/Cmd+K is pressed and blur on Escape
   useEffect(() => {

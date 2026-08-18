@@ -1,6 +1,5 @@
-use crate::services::database::DbContent;
 use chrono::{DateTime, Utc};
-use rusqlite::{params, Result};
+use rusqlite::{params, OptionalExtension, Result};
 use std::fs::{self, File};
 use std::io::Read;
 use std::path::PathBuf;
@@ -9,8 +8,20 @@ use tauri::{AppHandle, Manager};
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
 
-/// Indexes one file's metadata and returns the row id it was stored under.
-pub async fn process_file(app_handle: &AppHandle, path: &PathBuf) -> Result<i64, String> {
+/// What a single scan pass did with a path.
+pub enum ProcessOutcome {
+    /// Row was inserted or its content changed; queue the id for AI enrichment.
+    NeedsAi(i64),
+    /// Row already matches the on-disk hash; nothing left to do.
+    Unchanged,
+}
+
+/// Indexes one file's metadata, upserting the row, and returns what happened.
+pub async fn process_file(
+    app_handle: &AppHandle,
+    path: &PathBuf,
+    scan_id: i64,
+) -> Result<ProcessOutcome, String> {
     println!("Processing file: {:?}", path);
 
     let metadata = match fs::metadata(path) {
@@ -37,7 +48,7 @@ pub async fn process_file(app_handle: &AppHandle, path: &PathBuf) -> Result<i64,
     #[cfg(unix)]
     let inode = Some(metadata.ino() as i64);
     #[cfg(not(unix))]
-    let inode = None;
+    let inode: Option<i64> = None;
 
     let created_at = metadata
         .created()
@@ -53,41 +64,102 @@ pub async fn process_file(app_handle: &AppHandle, path: &PathBuf) -> Result<i64,
 
     let file_hash = calculate_file_hash(path).unwrap_or_default();
 
-    let file_data = DbContent {
-        file_path,
-        file_name,
-        file_hash,
-        extension,
-        file_size,
-
-        inode,
-        mime_type,
-        category: None,
-        content_text: None,
-        ai_summary: None,
-        ai_keywords: None,
-        created_at,
-        modified_at,
-        indexed_at: Some(Utc::now().to_rfc3339()),
-        ai_status: Some("pending".to_string()),
-        ai_error: None,
-        last_accessed_at: None,
-        last_seen_scan_id: None,
-    };
+    let indexed_at = Some(Utc::now().to_rfc3339());
 
     let db_state = app_handle
         .try_state::<crate::services::database::DbState>()
         .ok_or_else(|| "Database state not available".to_string())?;
     let conn = db_state.conn.lock().map_err(|e| e.to_string())?;
 
-    conn.execute("
-        INSERT INTO files (file_path, file_name, file_hash, extension, file_size, inode, mime_type, created_at, modified_at, indexed_at)
-        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)", params![file_data.file_path, file_data.file_name, file_data.file_hash, file_data.extension, file_data.file_size, file_data.inode, file_data.mime_type, file_data.created_at, file_data.modified_at, file_data.indexed_at]).map_err(|e| e.to_string())?;
+    let existing = conn
+        .query_row(
+            "SELECT id, file_hash FROM files WHERE file_path = ?1",
+            [&file_path],
+            |row| Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?)),
+        )
+        .optional()
+        .map_err(|e| e.to_string())?;
 
-    let row_id = conn.last_insert_rowid();
+    match existing {
+        None => {
+            conn.execute(
+                "INSERT INTO files (file_path, file_name, file_hash, extension, file_size, inode, mime_type, created_at, modified_at, indexed_at, last_seen_scan_id)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                params![
+                    file_path,
+                    file_name,
+                    file_hash,
+                    extension,
+                    file_size,
+                    inode,
+                    mime_type,
+                    created_at,
+                    modified_at,
+                    indexed_at,
+                    scan_id
+                ],
+            )
+            .map_err(|e| e.to_string())?;
 
-    println!("Inserted file data into database: {:#?}", file_data);
-    Ok(row_id)
+            Ok(ProcessOutcome::NeedsAi(conn.last_insert_rowid()))
+        }
+        Some((row_id, existing_hash)) if existing_hash == file_hash => {
+            conn.execute(
+                "UPDATE files SET last_seen_scan_id = ?1, modified_at = ?2, file_size = ?3
+                 WHERE id = ?4",
+                params![scan_id, modified_at, file_size, row_id],
+            )
+            .map_err(|e| e.to_string())?;
+
+            Ok(ProcessOutcome::Unchanged)
+        }
+        Some((row_id, _)) => {
+            conn.execute(
+                "UPDATE files SET file_hash = ?1, file_size = ?2, modified_at = ?3,
+                    mime_type = ?4, indexed_at = ?5, last_seen_scan_id = ?6,
+                    ai_status = 'pending', ai_error = NULL, content_text = NULL,
+                    ai_summary = NULL, ai_keywords = NULL
+                 WHERE id = ?7",
+                params![file_hash, file_size, modified_at, mime_type, indexed_at, scan_id, row_id],
+            )
+            .map_err(|e| e.to_string())?;
+
+            conn.execute("DELETE FROM files_vec WHERE id = ?1", params![row_id])
+                .map_err(|e| e.to_string())?;
+
+            Ok(ProcessOutcome::NeedsAi(row_id))
+        }
+    }
+}
+
+/// Computes the id for this scan so cleanup can tell seen rows apart from stale ones.
+pub fn next_scan_id(app_handle: &AppHandle) -> i64 {
+    let Some(state) = app_handle.try_state::<crate::services::database::DbState>() else {
+        return 1;
+    };
+    let Ok(conn) = state.conn.lock() else {
+        return 1;
+    };
+    conn.query_row(
+        "SELECT COALESCE(MAX(last_seen_scan_id), 0) + 1 FROM files",
+        [],
+        |row| row.get(0),
+    )
+    .unwrap_or(1)
+}
+
+/// Deletes rows for files that were not seen during this scan (they're gone from disk).
+pub fn cleanup_missing_files(app_handle: &AppHandle, scan_id: i64) -> Result<(), String> {
+    let Some(state) = app_handle.try_state::<crate::services::database::DbState>() else {
+        return Ok(());
+    };
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "DELETE FROM files WHERE last_seen_scan_id < ?1",
+        params![scan_id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 /// Hashes a file's full contents with blake3 to use as a change detector.

@@ -7,7 +7,9 @@ use std::sync::Arc;
 use tauri::Manager;
 use tokio::sync::mpsc;
 
-use crate::services::indexer::processing::process_file;
+use crate::services::indexer::processing::{
+    cleanup_missing_files, next_scan_id, process_file, ProcessOutcome,
+};
 
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
@@ -78,15 +80,16 @@ pub fn start_indexing(
     );
 
     tauri::async_runtime::spawn(async move {
-        while let Some(file_path) = rx.recv().await {
-            // Every file the walker emits counts as indexed for this session,
-            // even if it was already in the database from an earlier run.
-            if let Some(usage) = app_handle.try_state::<Arc<UsageCounters>>() {
-                usage.incr_files_indexed();
-            }
+        let scan_id = next_scan_id(&app_handle);
 
-            match process_file(&app_handle, &file_path).await {
-                Ok(row_id) => {
+        while let Some(file_path) = rx.recv().await {
+            match process_file(&app_handle, &file_path, scan_id).await {
+                Ok(ProcessOutcome::NeedsAi(row_id)) => {
+                    // Only genuinely new or changed files count as indexed.
+                    if let Some(usage) = app_handle.try_state::<Arc<UsageCounters>>() {
+                        usage.incr_files_indexed();
+                    }
+
                     if ai_tx.send(row_id).await.is_err() {
                         eprintln!(
                             "AI pipeline closed, dropped row {row_id} for {:?}",
@@ -94,8 +97,13 @@ pub fn start_indexing(
                         );
                     }
                 }
+                Ok(ProcessOutcome::Unchanged) => {}
                 Err(err) => eprintln!("Failed to process file {:?}: {}", file_path, err),
             }
+        }
+
+        if let Err(err) = cleanup_missing_files(&app_handle, scan_id) {
+            eprintln!("Failed to clean up stale files: {err}");
         }
     });
 

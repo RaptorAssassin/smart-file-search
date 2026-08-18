@@ -1,3 +1,4 @@
+import { createElement, type ReactNode } from 'react'
 import { writeText as tauriWriteText } from '@tauri-apps/plugin-clipboard-manager'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
@@ -16,6 +17,34 @@ export function formatBytes(bytes: number, decimals = 2): string {
   const value = bytes / Math.pow(k, index)
 
   return `${parseFloat(value.toFixed(decimals))} ${sizes[index]}`
+}
+
+export function formatTokens(tokens: number): string {
+  if (tokens < 1000) return String(tokens)
+  if (tokens < 1_000_000) return `${(tokens / 1000).toFixed(1)}K`
+  return `${(tokens / 1_000_000).toFixed(1)}M`
+}
+
+const TERM_SPLIT = /\s+/
+
+export function highlightMatches(text: string, query: string): ReactNode[] {
+  const terms = query.trim().split(TERM_SPLIT).filter(Boolean)
+  if (terms.length === 0) return [text]
+
+  const escaped = terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  const pattern = new RegExp(`(${escaped.join('|')})`, 'gi')
+  const lowerTerms = terms.map((t) => t.toLowerCase())
+
+  return text.split(pattern).map((part, i) => {
+    if (lowerTerms.includes(part.toLowerCase())) {
+      return createElement(
+        'mark',
+        { key: i, className: 'rounded-sm bg-accent/30 px-0.5 text-foreground' },
+        part
+      )
+    }
+    return part
+  })
 }
 
 export async function copyToClipboard(text: string): Promise<boolean> {

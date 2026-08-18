@@ -51,8 +51,9 @@ pub async fn ai_process_file(
             if extracted.trim().is_empty() && kind == PipelineKind::Pdf {
                 image_path = Some(path);
             } else if !extracted.trim().is_empty() {
-                content_text = extracted.clone();
-                model_text = Some(pipeline::truncate_head_tail(&extracted));
+                let truncated = pipeline::truncate_head_tail(&extracted);
+                content_text = truncated.clone();
+                model_text = Some(truncated);
             }
         }
         PipelineKind::Image => {
