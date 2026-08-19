@@ -8,7 +8,6 @@ import SearchBar from './components/search-bar'
 import { TooltipProvider } from './components/ui/tooltip'
 import { useKeyboardShortcuts } from './lib/shortcuts'
 import FilesSection from './components/files-section'
-import FilterBar from './components/filter-bar'
 import FileDetails from './components/file-details'
 
 function App() {
@@ -29,7 +28,6 @@ function App() {
           <AppSidebar className="flex-1 min-w-50 max-w-80" />
           <main className="relative flex min-w-0 flex-3 flex-col overflow-hidden">
             <SearchBar />
-            <FilterBar />
             <FilesSection />
           </main>
           <FileDetails />

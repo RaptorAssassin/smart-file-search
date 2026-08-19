@@ -1,7 +1,6 @@
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar'
 import DebugMenu from './debug-menu'
 import SettingsMenu from './settings-menu'
-import IndexingStatus from './indexing-status'
 import { FileSearchCorner } from 'lucide-react'
 
 export default function AppSidebar({ className }: { className?: string }) {
@@ -18,7 +17,6 @@ export default function AppSidebar({ className }: { className?: string }) {
       <SidebarContent></SidebarContent>
       <SidebarFooter>
         <div className="flex w-full flex-col items-center justify-center gap-2">
-          <IndexingStatus />
           <div className="shrink-0">
             <DebugMenu />
           </div>
