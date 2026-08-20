@@ -9,7 +9,6 @@ use crate::services::search::SearchEngine;
 
 const MAX_MATCHES: i64 = 200;
 
-/// The tier CASE expression uses one `?` per branch; keep this in sync.
 const MATCH_PARAM_COUNT: usize = 4;
 
 pub struct MetadataEngine;
@@ -39,9 +38,6 @@ impl SearchEngine for MetadataEngine {
             format!(" WHERE {filter_sql}")
         };
 
-        // One tier CASE per term; a term matches when its tier < 4. Any matching
-        // term qualifies the file (OR), but files matching more terms rank first,
-        // then by how closely each term matches (sum of tiers).
         let tier_expr = "CASE
                 WHEN lower(file_name) = lower(?) THEN 0
                 WHEN lower(file_name) LIKE lower(?) || '%' THEN 1

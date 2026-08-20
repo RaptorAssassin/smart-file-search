@@ -8,7 +8,6 @@ pub struct DbState {
     pub conn: std::sync::Mutex<Connection>,
 }
 
-/// Opens the app database, registers sqlite-vec, and applies the schema migration.
 pub fn init_database(app_handle: &AppHandle) -> Result<(Connection, PathBuf)> {
     let app_dir = app_handle
         .path()
@@ -52,7 +51,6 @@ pub fn init_database(app_handle: &AppHandle) -> Result<(Connection, PathBuf)> {
 fn create_schema(conn: &Connection) -> Result<()> {
     conn.execute_batch(
         r#"
-        -- COMMAND 1: Core Relational Table
         CREATE TABLE IF NOT EXISTS files (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             file_path TEXT NOT NULL UNIQUE,
@@ -77,7 +75,6 @@ fn create_schema(conn: &Connection) -> Result<()> {
         CREATE INDEX IF NOT EXISTS idx_files_path ON files(file_path);
         CREATE INDEX IF NOT EXISTS idx_files_status ON files(ai_status);
 
-        -- COMMAND 2: Full-Text Search Table & Triggers
         CREATE VIRTUAL TABLE IF NOT EXISTS files_fts USING fts5(
             id UNINDEXED,
             content_text,
@@ -87,19 +84,16 @@ fn create_schema(conn: &Connection) -> Result<()> {
             content_rowid='rowid'
         );
 
-        -- Trigger: After Inserting a File
         CREATE TRIGGER IF NOT EXISTS files_ai AFTER INSERT ON files BEGIN
             INSERT INTO files_fts(rowid, content_text, ai_summary, ai_keywords) 
             VALUES (new.id, new.content_text, new.ai_summary, new.ai_keywords);
         END;
 
-        -- Trigger: After Deleting a File
         CREATE TRIGGER IF NOT EXISTS files_ad AFTER DELETE ON files BEGIN
             INSERT INTO files_fts(files_fts, rowid, content_text, ai_summary, ai_keywords) 
             VALUES('delete', old.id, old.content_text, old.ai_summary, old.ai_keywords);
         END;
 
-        -- Trigger: After Updating a File (Delete old FTS entry, Insert new)
         CREATE TRIGGER IF NOT EXISTS files_au AFTER UPDATE ON files BEGIN
             INSERT INTO files_fts(files_fts, rowid, content_text, ai_summary, ai_keywords) 
             VALUES('delete', old.id, old.content_text, old.ai_summary, old.ai_keywords);
@@ -108,13 +102,11 @@ fn create_schema(conn: &Connection) -> Result<()> {
             VALUES (new.id, new.content_text, new.ai_summary, new.ai_keywords);
         END;
 
-        -- COMMAND 3: Vector Search Tables (Enabled by sqlite3_auto_extension above)
         CREATE VIRTUAL TABLE IF NOT EXISTS files_vec USING vec0(
             id INTEGER PRIMARY KEY,
             embedding float[768]
         );
 
-        -- Trigger: Delete embedding when file is removed
         CREATE TRIGGER IF NOT EXISTS files_vec_ad AFTER DELETE ON files BEGIN
             DELETE FROM files_vec WHERE id = old.id;
         END;

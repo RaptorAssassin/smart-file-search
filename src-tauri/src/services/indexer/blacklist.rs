@@ -27,7 +27,6 @@ pub struct Blacklist {
 }
 
 impl Blacklist {
-    /// Builds a Blacklist from the bundled JSON blacklist and the user's config.
     pub fn new(
         app: &AppHandle,
         config: BlacklistConfig,
@@ -60,7 +59,6 @@ impl Blacklist {
         Self::from_lists(folder_names, extensions, path_patterns)
     }
 
-    /// Compiles raw lists into a matchable Blacklist, normalizing case for real on-disk paths.
     pub fn from_lists(
         folder_names: Vec<String>,
         extensions: Vec<String>,
@@ -94,7 +92,6 @@ impl Blacklist {
         })
     }
 
-    /// Checks if a path should be skipped based on the blacklist rules.
     pub fn should_skip_path(&self, path: &Path) -> bool {
         if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
             if self.extensions.contains(&ext.to_lowercase()) {
@@ -145,19 +142,14 @@ mod tests {
             let bl = blacklist(&[], &[], patterns);
             bl.should_skip_path(Path::new(path))
         }
-        // {/X,/X/**} matches the bare dir (so the walker prunes it) ...
         assert!(g(&["{/Windows,/Windows/**}"], "/Windows"));
-        // ... and everything under it ...
         assert!(g(&["{/Windows,/Windows/**}"], "/Windows\\System32\\ntdll.dll"));
         assert!(g(&["{/Windows,/Windows/**}"], "/Windows/x.dll"));
-        // ... but never a same-named folder inside a user profile.
         assert!(!g(&["{/Windows,/Windows/**}"], "/Users/me/Windows/x.dll"));
         assert!(!g(&["{/dev,/dev/**}"], "/Users/me/dev/x"));
-        // {**/Users/Default,...} prunes only the template profile, not other Default folders.
         assert!(g(&["{**/Users/Default,**/Users/Default/**}"], "/Users/Default"));
         assert!(g(&["{**/Users/Default,**/Users/Default/**}"], "/Users/Default/Desktop/x.pdf"));
         assert!(!g(&["{**/Users/Default,**/Users/Default/**}"], "/Users/Karl/Default/x"));
-        // Root-anchored system dirs only match the root, not a user "media"/"dev" folder.
         assert!(g(&["{/media,/media/**}"], "/media/backup/x"));
         assert!(!g(&["{/media,/media/**}"], "/Users/me/media/photos/x"));
     }

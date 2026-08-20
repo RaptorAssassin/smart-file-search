@@ -79,12 +79,10 @@ pub struct GenerateResponse {
 }
 
 impl OllamaClient {
-    /// Builds a client pointed at an Ollama server without usage tracking.
     pub fn new(base_url: impl Into<String>) -> Self {
         Self::with_usage(base_url, None)
     }
 
-    /// Builds a client pointed at an Ollama server, recording usage if a counter is provided.
     pub fn with_usage(base_url: impl Into<String>, usage: Option<Arc<UsageCounters>>) -> Self {
         Self {
             base_url: base_url.into(),
@@ -98,7 +96,6 @@ impl OllamaClient {
         }
     }
 
-    /// Sends a JSON body to an Ollama endpoint and deserializes the response, surfacing server errors.
     async fn post_json<T, R>(&self, path: &str, body: &T) -> Result<R, String>
     where
         T: Serialize,
@@ -133,7 +130,6 @@ impl OllamaClient {
         }
     }
 
-    /// Asks the LLM for a short list of keywords for a piece of text.
     pub async fn generate_keywords(&self, text: &str) -> Result<Vec<String>, String> {
         let body = ChatRequest {
             model: self.llm_model.clone(),
@@ -162,7 +158,6 @@ impl OllamaClient {
         parse_keywords(&chat_response.message.content)
     }
 
-    /// Asks the LLM for a one-line summary of a piece of text.
     pub async fn generate_summary(&self, text: &str) -> Result<String, String> {
         let body = ChatRequest {
             model: self.llm_model.clone(),
@@ -191,7 +186,6 @@ impl OllamaClient {
         Ok(chat_response.message.content)
     }
 
-    /// Asks the embedding model for a vector representation of the text.
     pub async fn generate_embedding(&self, text: &str) -> Result<Vec<f32>, String> {
         let body = EmbeddingRequest {
             model: self.embed_model.clone(),
@@ -201,7 +195,6 @@ impl OllamaClient {
         let embedding_response: EmbeddingResponse = self.post_json("/api/embed", &body).await?;
 
         if let Some(usage) = &self.usage {
-            // Ollama does not report token counts for /api/embed, so estimate.
             usage.add_tokens((text.chars().count() / 4) as u64);
         }
 
@@ -221,7 +214,6 @@ impl OllamaClient {
         Ok(embedding)
     }
 
-    /// Asks a vision model for a vector representation of an image.
     pub async fn generate_embedding_from_image(
         &self,
         base64_image: &str,
@@ -230,7 +222,6 @@ impl OllamaClient {
         self.generate_embedding(&caption).await
     }
 
-    /// Asks the vision-capable model to describe an image in one short caption.
     async fn generate_image_caption(&self, base64_image: &str) -> Result<String, String> {
         let body = GenerateRequest {
             model: self.llm_model.clone(),
@@ -255,8 +246,6 @@ impl OllamaClient {
     }
 }
 
-/// Extracts a JSON array of strings from a completion reply, tolerating stray
-/// prose or a wrapper object (e.g. `{"keywords": [...]}`) around the array.
 fn parse_keywords(content: &str) -> Result<Vec<String>, String> {
     let start = content.find('[');
     let end = content.rfind(']');

@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core'
+import { commands } from '@/bindings/bindings'
 import {
   Dialog,
   DialogContent,
@@ -32,10 +32,12 @@ export default function DebugMenu() {
   useEffect(() => {
     const fetchDatabaseInfo = async () => {
       try {
-        const path: string = await invoke('get_database_path')
+        const path = await commands.getDatabasePath()
         setDebugInfo((prev) => ({ ...prev, databasePath: path }))
-        const size: number = await invoke('get_database_size')
-        setDebugInfo((prev) => ({ ...prev, databaseSize: size }))
+        const size = await commands.getDatabaseSize()
+        if (size.status === 'ok') {
+          setDebugInfo((prev) => ({ ...prev, databaseSize: size.data }))
+        }
       } catch (error) {
         console.error('Error fetching database info', error)
       }

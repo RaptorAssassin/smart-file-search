@@ -6,8 +6,6 @@ use serde::{Deserialize, Serialize};
 use crate::services::ai::prompts::PROMPTS;
 use crate::services::usage::UsageCounters;
 
-/// OpenAI-compatible chat client used when the "Custom" provider is selected.
-/// Talks to `{endpoint}/chat/completions` with a Bearer API key.
 #[derive(Debug, Clone)]
 pub struct OpenAiClient {
     pub endpoint: String,
@@ -51,12 +49,10 @@ struct Usage {
 }
 
 impl OpenAiClient {
-    /// Builds a client for an OpenAI-compatible endpoint without usage tracking.
     pub fn new(endpoint: impl Into<String>, api_key: impl Into<String>, model: impl Into<String>) -> Self {
         Self::with_usage(endpoint, api_key, model, None)
     }
 
-    /// Builds a client for an OpenAI-compatible endpoint, recording usage if a counter is provided.
     pub fn with_usage(
         endpoint: impl Into<String>,
         api_key: impl Into<String>,
@@ -75,7 +71,6 @@ impl OpenAiClient {
         }
     }
 
-    /// Sends a chat completion request and returns the assistant's reply content.
     async fn chat(&self, system: &str, user: &str) -> Result<String, String> {
         let url = self.completions_url();
 
@@ -136,13 +131,11 @@ impl OpenAiClient {
             .ok_or_else(|| "Custom endpoint returned no choices".to_string())
     }
 
-    /// Asks the model for a short list of keywords for a piece of text.
     pub async fn generate_keywords(&self, text: &str) -> Result<Vec<String>, String> {
         let content = self.chat(PROMPTS.keywords, text).await?;
         parse_keywords(&content)
     }
 
-    /// Asks the model for a one-line summary of a piece of text.
     pub async fn generate_summary(&self, text: &str) -> Result<String, String> {
         self.chat(PROMPTS.summary, text).await
     }
@@ -156,8 +149,6 @@ impl OpenAiClient {
     }
 }
 
-/// Extracts a JSON array of strings from a completion reply, tolerating stray
-/// prose around the JSON.
 fn parse_keywords(content: &str) -> Result<Vec<String>, String> {
     let start = content.find('[');
     let end = content.rfind(']');

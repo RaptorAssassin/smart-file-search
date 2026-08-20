@@ -1,10 +1,6 @@
 import { useEffect } from 'react'
 import { useSearchStore } from '@/stores/search-store'
 
-/**
- * Arrow keys move the active result while the search input is focused;
- * Enter opens the active result's details, Escape clears the selection.
- */
 export function useResultsNavigation(scrollRef: React.RefObject<HTMLDivElement | null>) {
   const files = useSearchStore((s) => s.files)
   const activeIndex = useSearchStore((s) => s.activeIndex)

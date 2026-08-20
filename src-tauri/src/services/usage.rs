@@ -2,9 +2,6 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-/// Session-scoped counters. All increments use relaxed ordering: on a hot path
-/// like indexing there is no need for cross-thread synchronization beyond the
-/// atomics themselves.
 #[derive(Debug, Default)]
 pub struct UsageCounters {
     pub requests: AtomicU64,

@@ -14,9 +14,6 @@ pub struct SearchFilters {
 }
 
 impl SearchFilters {
-    /// Builds the shared `WHERE` conditions over `files`; params follow placeholder
-    /// order, empty when unset. Engines add their own `WHERE`/`AND` keyword around
-    /// the fragment depending on their query shape.
     pub fn to_where_sql(&self) -> (String, Vec<Value>) {
         let mut predicates: Vec<String> = Vec::new();
         let mut params: Vec<Value> = Vec::new();

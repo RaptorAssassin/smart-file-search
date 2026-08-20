@@ -12,7 +12,6 @@ use crate::services::indexer::blacklist::Blacklist;
 
 pub const AI_QUEUE_CAPACITY: usize = 10_000;
 
-/// Spawns the AI worker pool and queues any files left pending from an earlier run.
 pub fn start_ai_processing(
     app_handle: AppHandle,
     blacklist: Arc<Blacklist>,
@@ -57,7 +56,6 @@ pub fn start_ai_processing(
     });
 }
 
-/// Picks how many AI workers to run, capped so weak machines aren't swamped.
 fn worker_count() -> usize {
     std::thread::available_parallelism()
         .map(|n| n.get())
@@ -65,7 +63,6 @@ fn worker_count() -> usize {
         .min(4)
 }
 
-/// Collects the ids of files that still need AI processing at startup.
 async fn drain_rows_with_status(app_handle: &AppHandle, status: &str) -> Vec<i64> {
     let state = match app_handle.try_state::<DbState>() {
         Some(state) => state,

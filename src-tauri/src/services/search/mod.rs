@@ -20,9 +20,6 @@ pub use filters::SearchFilters;
 pub trait SearchEngine {
     fn kind(&self) -> EngineKind;
 
-    /// Each engine locks `conn` itself, only around its SQL. Any external I/O
-    /// (e.g. the vector engine's Ollama call) must happen before the lock so the
-    /// connection is never held across an await.
     async fn search(
         &self,
         conn: &Mutex<Connection>,
@@ -51,8 +48,6 @@ pub struct SearchResponse {
     pub unavailable: Vec<String>,
 }
 
-/// Runs the engines sequentially, drops and flags any that error, fuses the
-/// survivors with RRF, then hydrates the top `limit` rows.
 pub async fn search(
     conn: &Mutex<Connection>,
     query: &str,

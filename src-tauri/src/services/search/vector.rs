@@ -56,9 +56,6 @@ impl SearchEngine for VectorEngine {
             return Ok(Vec::new());
         }
 
-        // External I/O happens before the lock so the connection is never held
-        // across an await. Ollama down => Err, which the orchestrator turns into
-        // a skipped + flagged engine, never a failed search.
         let embedding = self.client.generate_embedding(query).await?;
 
         let (filter_sql, filter_params) = filters.to_where_sql();

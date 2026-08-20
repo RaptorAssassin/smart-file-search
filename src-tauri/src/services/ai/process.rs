@@ -13,7 +13,6 @@ use crate::services::indexer::blacklist::Blacklist;
 use crate::services::usage::UsageCounters;
 use crate::AppState;
 
-/// Runs one file through the AI pipeline and writes the results back to the database.
 pub async fn ai_process_file(
     app_handle: &AppHandle,
     blacklist: &Blacklist,
@@ -62,8 +61,6 @@ pub async fn ai_process_file(
         PipelineKind::Audio | PipelineKind::Video | PipelineKind::Unsupported => {}
     }
 
-    // Persist the extracted text before any AI work so content search keeps
-    // working even when the model calls below fail (Ollama down, bad replies).
     if !content_text.is_empty() {
         persist_content(app_handle, row_id, &content_text).await?;
     }
@@ -77,9 +74,6 @@ pub async fn ai_process_file(
         .try_state::<Arc<UsageCounters>>()
         .map(|state| Arc::clone(&state));
 
-    // Keyword/summary/embedding generation is best-effort: a failure never
-    // discards the content already persisted above. Failures are recorded so
-    // the row is re-queued on the next startup to fill in the AI fields.
     let mut keywords = Vec::new();
     let mut summary = String::new();
     let mut ai_errors: Vec<String> = Vec::new();
@@ -161,8 +155,6 @@ pub async fn ai_process_file(
     Ok(())
 }
 
-/// Writes the extracted text into the row so FTS search can find it even if
-/// the AI enrichment steps fail later.
 async fn persist_content(
     app_handle: &AppHandle,
     row_id: i64,
@@ -180,7 +172,6 @@ async fn persist_content(
     Ok(())
 }
 
-/// Marks a file as failed so it isn't picked up again.
 pub async fn mark_error(app_handle: &AppHandle, row_id: i64, error: &str) -> Result<(), String> {
     let state = app_handle
         .try_state::<DbState>()
@@ -194,7 +185,6 @@ pub async fn mark_error(app_handle: &AppHandle, row_id: i64, error: &str) -> Res
     Ok(())
 }
 
-/// Reads an image file and base64-encodes it for the vision models.
 fn image_to_base64(path: &Path) -> Result<String, String> {
     use base64::engine::general_purpose::STANDARD;
     use base64::Engine;

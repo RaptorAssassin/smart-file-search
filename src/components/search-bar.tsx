@@ -16,12 +16,10 @@ export default function SearchBar() {
 
   const handleSearchQueryChange = (query: string) => {
     setSearchQuery(query)
-    if (query.trim() === '') return
   }
 
   const isMac = isMacOS()
 
-  // Focus search bar when Ctrl/Cmd+K is pressed and blur on Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const modifierPressed = isMac ? e.metaKey : e.ctrlKey

@@ -8,22 +8,16 @@ use tauri::{AppHandle, Manager};
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
 
-/// What a single scan pass did with a path.
 pub enum ProcessOutcome {
-    /// Row was inserted or its content changed; queue the id for AI enrichment.
     NeedsAi(i64),
-    /// Row already matches the on-disk hash; nothing left to do.
     Unchanged,
 }
 
-/// Indexes one file's metadata, upserting the row, and returns what happened.
 pub async fn process_file(
     app_handle: &AppHandle,
     path: &PathBuf,
     scan_id: i64,
 ) -> Result<ProcessOutcome, String> {
-    println!("Processing file: {:?}", path);
-
     let metadata = match fs::metadata(path) {
         Ok(m) => m,
         Err(e) => return Err(format!("Failed to read metadata for {:?}: {}", path, e)),
@@ -132,7 +126,6 @@ pub async fn process_file(
     }
 }
 
-/// Computes the id for this scan so cleanup can tell seen rows apart from stale ones.
 pub fn next_scan_id(app_handle: &AppHandle) -> i64 {
     let Some(state) = app_handle.try_state::<crate::services::database::DbState>() else {
         return 1;
@@ -148,7 +141,6 @@ pub fn next_scan_id(app_handle: &AppHandle) -> i64 {
     .unwrap_or(1)
 }
 
-/// Deletes rows for files that were not seen during this scan (they're gone from disk).
 pub fn cleanup_missing_files(app_handle: &AppHandle, scan_id: i64) -> Result<(), String> {
     let Some(state) = app_handle.try_state::<crate::services::database::DbState>() else {
         return Ok(());
@@ -162,7 +154,6 @@ pub fn cleanup_missing_files(app_handle: &AppHandle, scan_id: i64) -> Result<(),
     Ok(())
 }
 
-/// Hashes a file's full contents with blake3 to use as a change detector.
 fn calculate_file_hash(path: &PathBuf) -> Result<String, Box<dyn std::error::Error>> {
     let mut file = File::open(path)?;
     let mut hasher = blake3::Hasher::new();

@@ -107,7 +107,6 @@ export default function SettingsMenu() {
         </DialogHeader>
         <div className="scrollbar-hidden max-h-[calc(100vh-12rem)] overflow-y-auto">
           <div className="flex flex-col gap-6">
-            {/* Models */}
             <div className="rounded-lg border p-4">
               <FieldSet>
                 <FieldLegend>Models</FieldLegend>
@@ -264,7 +263,6 @@ export default function SettingsMenu() {
                 </FieldSet>
               </FieldSet>
             </div>
-            {/* UI */}
             <div className="rounded-lg border p-4">
               <FieldSet>
                 <FieldLegend>UI</FieldLegend>
@@ -291,7 +289,6 @@ export default function SettingsMenu() {
                     </SelectContent>
                   </Select>
                 </Field>
-                {/* Disable Keyboard Shortcut Hints */}
                 <Field orientation="horizontal">
                   <Checkbox
                     id="disable-keyboard-shortcut-hints"
@@ -318,11 +315,9 @@ export default function SettingsMenu() {
                 </Field>
               </FieldSet>
             </div>
-            {/* Developer */}
             <div className="rounded-lg border p-4">
               <FieldSet>
                 <FieldLegend>Developer</FieldLegend>
-                {/* Enable Debug Menu */}
                 <Field orientation="horizontal">
                   <Checkbox
                     id="enable-debug-menu"

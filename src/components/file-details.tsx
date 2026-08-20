@@ -73,7 +73,7 @@ export default function FileDetails() {
             value={selectedFile?.mime_type ?? selectedFile?.extension ?? '—'}
           />
           <DetailRow label="Category" value={selectedFile?.category ?? '—'} />
-          {selectedFile?.score !== null && selectedFile?.score !== undefined && (
+          {selectedFile?.score != null && (
             <DetailRow label="Relevance score" value={selectedFile.score.toFixed(4)} />
           )}
         </div>

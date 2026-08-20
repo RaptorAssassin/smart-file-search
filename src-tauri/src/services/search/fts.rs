@@ -27,9 +27,6 @@ impl SearchEngine for FtsEngine {
             return Ok(Vec::new());
         }
 
-        // Split into terms and OR them so multi-keyword queries match any term;
-        // each term is quoted so FTS5 treats it as literal text instead of
-        // operator syntax. bm25 ranking then lifts files matching more terms.
         let terms: Vec<&str> = query.split_whitespace().collect();
         let match_query = terms
             .iter()

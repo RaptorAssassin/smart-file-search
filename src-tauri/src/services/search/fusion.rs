@@ -46,7 +46,6 @@ pub struct FusedScore {
     pub score: f64,
 }
 
-/// Fuses per-engine rankings via Reciprocal Rank Fusion: `weight / (K + rank)` per vote.
 pub fn fuse(votes: &[EngineVote]) -> Vec<FusedScore> {
     let mut acc: HashMap<i64, f64> = HashMap::new();
 

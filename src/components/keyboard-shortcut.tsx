@@ -9,7 +9,6 @@ type KeyboardShortcutProps = {
 }
 
 export default function KeyboardShortcut({ identifier }: KeyboardShortcutProps) {
-  // Don't show keyboard shortcut hints if the user has disabled them in the config
   const config = useConfigStore((state) => state.config)
   if (config?.settings?.disable_keyboard_shortcut_hints) return null
 

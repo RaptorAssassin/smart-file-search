@@ -14,14 +14,12 @@ use crate::services::indexer::processing::{
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
 
-/// Walks the filesystem and pushes every non-blacklisted file into the indexing queue.
 pub fn traverse_system(
     root: PathBuf,
     ignore_hidden: bool,
     blacklist: Arc<Blacklist>,
     tx: mpsc::Sender<PathBuf>,
 ) {
-    // Arc is used to share the blacklist across threads without needing to clone it for each entry
     let filter_blacklist = Arc::clone(&blacklist);
 
     let walker = WalkBuilder::new(root)
@@ -29,7 +27,6 @@ pub fn traverse_system(
         .hidden(ignore_hidden)
         .git_ignore(false)
         .same_file_system(true)
-        // Skip blacklisted directories
         .filter_entry(move |entry| !filter_blacklist.should_skip_path(entry.path()))
         .build_parallel();
 
@@ -55,7 +52,6 @@ pub fn traverse_system(
     });
 }
 
-/// Starts the filesystem scan and the AI worker pool that processes behind it.
 pub fn start_indexing(
     app_handle: tauri::AppHandle,
     ignore_hidden: bool,
@@ -85,7 +81,6 @@ pub fn start_indexing(
         while let Some(file_path) = rx.recv().await {
             match process_file(&app_handle, &file_path, scan_id).await {
                 Ok(ProcessOutcome::NeedsAi(row_id)) => {
-                    // Only genuinely new or changed files count as indexed.
                     if let Some(usage) = app_handle.try_state::<Arc<UsageCounters>>() {
                         usage.incr_files_indexed();
                     }
