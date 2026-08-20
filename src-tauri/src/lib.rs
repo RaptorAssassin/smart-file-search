@@ -9,7 +9,7 @@ use crate::{
     commands::{
         config::config::{get_config, save_config, ConfigManager},
         debug::{get_database_path, get_database_size},
-        files::reveal_in_folder,
+        files::{open_file, reveal_in_folder},
         search::{search_files, search_filter_options},
         usage::get_usage,
     },
@@ -36,6 +36,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             search_files,
             search_filter_options,
             get_usage,
+            open_file,
             reveal_in_folder,
         ])
         .dangerously_cast_bigints_to_number()

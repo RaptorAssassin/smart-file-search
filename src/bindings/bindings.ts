@@ -19,6 +19,7 @@ export const commands = {
 } | null, limit: number | null) => typedError<SearchResponse, string>(__TAURI_INVOKE("search_files", { query, filters, limit })),
 	searchFilterOptions: () => typedError<SearchFilterOptions, string>(__TAURI_INVOKE("search_filter_options")),
 	getUsage: () => __TAURI_INVOKE<UsageSnapshot>("get_usage"),
+	openFile: (path: string) => typedError<null, string>(__TAURI_INVOKE("open_file", { path })),
 	revealInFolder: (path: string) => typedError<null, string>(__TAURI_INVOKE("reveal_in_folder", { path })),
 };
 

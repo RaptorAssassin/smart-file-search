@@ -181,6 +181,7 @@ export default function FilesSection() {
                   query={searchQuery ?? ''}
                   active={activeIndex === index}
                   onSelect={() => setSelectedFile(file)}
+                  onFocus={() => setActiveIndex(index)}
                 />
               </motion.li>
             ))}
@@ -204,16 +205,19 @@ function FileCard({
   query,
   active,
   onSelect,
+  onFocus,
 }: {
   file: SearchResult
   query: string
   active: boolean
   onSelect: () => void
+  onFocus: () => void
 }) {
   return (
     <button
       type="button"
       onClick={onSelect}
+      onFocus={onFocus}
       className={cn(
         'flex w-full items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:bg-muted',
         active && 'border-accent bg-accent/10 hover:bg-accent/10'

@@ -5,6 +5,7 @@ Built with Tauri, Rust and Ollama.
 
 ![GitHub License](https://img.shields.io/github/license/RaptorAssassin/smart-file-search?label=License)
 ![App Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FRaptorAssassin%2Fsmart-file-search%2Fmain%2Fpackage.json&query=%24.version&label=Version)
+![GitHub Release](https://img.shields.io/github/v/release/RaptorAssassin/smart-file-search?label=Release)
 
 ## Description
 

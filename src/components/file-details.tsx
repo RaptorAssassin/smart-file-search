@@ -1,6 +1,4 @@
-import { useState } from 'react'
-import { openPath } from '@tauri-apps/plugin-opener'
-import { CheckIcon, CopyIcon, ExternalLinkIcon, FolderOpenIcon } from 'lucide-react'
+import { ExternalLinkIcon, FolderOpenIcon } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -13,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { commands } from '@/bindings/bindings'
 import { useSearchStore } from '@/stores/search-store'
 import { FileIcon } from '@/components/file-icon'
-import { copyToClipboard, formatBytes } from '@/lib/utils'
+import { formatBytes } from '@/lib/utils'
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -27,24 +25,15 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 export default function FileDetails() {
   const selectedFile = useSearchStore((s) => s.selectedFile)
   const setSelectedFile = useSearchStore((s) => s.setSelectedFile)
-  const [copied, setCopied] = useState(false)
 
   const handleOpen = () => {
     if (!selectedFile) return
-    void openPath(selectedFile.file_path).catch((e) => console.error(e))
+    void commands.openFile(selectedFile.file_path)
   }
 
   const handleReveal = () => {
     if (!selectedFile) return
     void commands.revealInFolder(selectedFile.file_path)
-  }
-
-  const handleCopy = async () => {
-    if (!selectedFile) return
-    if (await copyToClipboard(selectedFile.file_path)) {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    }
   }
 
   return (
@@ -98,10 +87,6 @@ export default function FileDetails() {
             <Button variant="outline" onClick={handleReveal}>
               <FolderOpenIcon />
               Reveal
-            </Button>
-            <Button variant="outline" onClick={handleCopy}>
-              {copied ? <CheckIcon /> : <CopyIcon />}
-              {copied ? 'Copied' : 'Copy path'}
             </Button>
           </div>
         </SheetFooter>
