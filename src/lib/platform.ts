@@ -1,0 +1,4 @@
+export function isMacOS(): boolean {
+  if (typeof navigator === 'undefined') return false
+  return navigator.userAgent.toLowerCase().includes('mac')
+}

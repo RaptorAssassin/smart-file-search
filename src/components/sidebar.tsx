@@ -7,9 +7,11 @@ export default function AppSidebar({ className }: { className?: string }) {
   return (
     <Sidebar collapsible="none" className={className}>
       <SidebarHeader>
-        <div className="flex gap-2 items-center justify-center text-accent select-none">
-          <FileSearchCorner className="text-2xl size-6 shrink-0" />
-          <span className="text-2xl font-bold">Smart File Search</span>
+        <div className="flex items-center justify-center gap-2 whitespace-nowrap select-none">
+          <FileSearchCorner className="size-6 shrink-0 text-accent" strokeWidth={2.25} />
+          <span className="text-lg font-semibold tracking-tight text-accent">
+            Smart File Search
+          </span>
         </div>
       </SidebarHeader>
       <SidebarContent></SidebarContent>

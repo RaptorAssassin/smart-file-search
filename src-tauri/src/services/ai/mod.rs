@@ -1,4 +1,5 @@
 pub mod client;
+pub mod openai;
 pub mod pipeline;
 pub mod process;
 pub mod prompts;

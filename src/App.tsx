@@ -3,41 +3,17 @@ import { useEffect } from 'react'
 import { SidebarProvider } from './components/ui/sidebar'
 import AppSidebar from './components/sidebar'
 import { useConfigStore } from './stores/config-store'
-import { applyTheme } from './lib/theme'
+import { useApplyTheme } from './lib/theme'
 import SearchBar from './components/search-bar'
-import { Button } from './components/ui/button'
 import { TooltipProvider } from './components/ui/tooltip'
 import { useKeyboardShortcuts } from './lib/shortcuts'
+import FilesSection from './components/files-section'
+import FileDetails from './components/file-details'
 
 function App() {
   const config = useConfigStore((state) => state.config)
 
-  useEffect(() => {
-    const root = document.documentElement
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-
-    let theme = config?.settings?.theme
-
-    if (!theme) {
-      theme = mediaQuery.matches ? 'Dark' : 'Light'
-    }
-
-    applyTheme(theme)
-
-    if (theme !== 'System') {
-      return
-    }
-
-    const handleThemeChange = (event: MediaQueryListEvent) => {
-      root.classList.toggle('dark', event.matches)
-    }
-
-    mediaQuery.addEventListener('change', handleThemeChange)
-
-    return () => {
-      mediaQuery.removeEventListener('change', handleThemeChange)
-    }
-  }, [config?.settings?.theme])
+  useApplyTheme(config?.settings?.theme)
 
   useEffect(() => {
     useConfigStore.getState().loadConfig()
@@ -52,8 +28,9 @@ function App() {
           <AppSidebar className="flex-1 min-w-50 max-w-80" />
           <main className="relative flex min-w-0 flex-3 flex-col overflow-hidden">
             <SearchBar />
-            <div className="w-full h-full"></div>
+            <FilesSection />
           </main>
+          <FileDetails />
         </SidebarProvider>
       </TooltipProvider>
     </div>

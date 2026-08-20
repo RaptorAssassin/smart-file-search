@@ -9,6 +9,9 @@ use crate::{
     commands::{
         config::config::{get_config, save_config, ConfigManager},
         debug::{get_database_path, get_database_size},
+        files::{open_file, reveal_in_folder},
+        search::{search_files, search_filter_options},
+        usage::get_usage,
     },
     services::indexer::{blacklist::Blacklist, indexer::start_indexing},
 };
@@ -30,6 +33,11 @@ fn specta_builder() -> Builder<tauri::Wry> {
             get_database_size,
             get_config,
             save_config,
+            search_files,
+            search_filter_options,
+            get_usage,
+            open_file,
+            reveal_in_folder,
         ])
         .dangerously_cast_bigints_to_number()
 }
@@ -47,6 +55,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_sql::Builder::default().build())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
             let app_handle = app.handle();
@@ -58,11 +67,14 @@ pub fn run() {
             let blacklist_config = config_manager.blacklist.read().unwrap().clone();
             let blacklist = Arc::new(Blacklist::new(app_handle, blacklist_config.clone())?);
 
-            start_indexing(app_handle.clone(), Arc::clone(&blacklist))?;
+            let ignore_hidden = config_manager.config.read().unwrap().indexing.ignore_hidden;
+            start_indexing(app_handle.clone(), ignore_hidden, Arc::clone(&blacklist))?;
 
             app.manage(services::database::DbState {
                 conn: std::sync::Mutex::new(conn),
             });
+
+            app.manage(Arc::new(crate::services::usage::UsageCounters::default()));
 
             app.manage(AppState {
                 db_path,

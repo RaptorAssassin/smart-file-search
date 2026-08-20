@@ -13,7 +13,6 @@ export default function KeyboardShortcut({ identifier }: KeyboardShortcutProps) 
   const config = useConfigStore((state) => state.config)
   if (config?.settings?.disable_keyboard_shortcut_hints) return null
 
-
   const shortcut = KEYBOARD_SHORTCUTS[identifier]
   if (!shortcut) return null
 

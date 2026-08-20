@@ -1,9 +1,11 @@
+use std::sync::Arc;
 use std::time::Duration;
 
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
 use crate::services::ai::prompts::PROMPTS;
+use crate::services::usage::UsageCounters;
 
 #[derive(Debug, Clone)]
 pub struct OllamaClient {
@@ -11,6 +13,7 @@ pub struct OllamaClient {
     pub llm_model: String,
     pub embed_model: String,
     pub http: reqwest::Client,
+    pub usage: Option<Arc<UsageCounters>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -40,6 +43,10 @@ pub struct ChatRequest {
 pub struct ChatResponse {
     message: ChatMessage,
     done: bool,
+    #[serde(default)]
+    prompt_eval_count: Option<u64>,
+    #[serde(default)]
+    eval_count: Option<u64>,
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -65,11 +72,20 @@ pub struct GenerateRequest {
 pub struct GenerateResponse {
     response: String,
     done: bool,
+    #[serde(default)]
+    prompt_eval_count: Option<u64>,
+    #[serde(default)]
+    eval_count: Option<u64>,
 }
 
 impl OllamaClient {
-    /// Builds a client pointed at an Ollama server.
+    /// Builds a client pointed at an Ollama server without usage tracking.
     pub fn new(base_url: impl Into<String>) -> Self {
+        Self::with_usage(base_url, None)
+    }
+
+    /// Builds a client pointed at an Ollama server, recording usage if a counter is provided.
+    pub fn with_usage(base_url: impl Into<String>, usage: Option<Arc<UsageCounters>>) -> Self {
         Self {
             base_url: base_url.into(),
             llm_model: "gemma3:4b".to_string(),
@@ -78,6 +94,7 @@ impl OllamaClient {
                 .timeout(Duration::from_secs(600))
                 .build()
                 .expect("Failed to build HTTP client"),
+            usage,
         }
     }
 
@@ -87,6 +104,9 @@ impl OllamaClient {
         T: Serialize,
         R: DeserializeOwned,
     {
+        if let Some(usage) = &self.usage {
+            usage.record_request();
+        }
         let url = format!("{}{}", self.base_url, path);
         let res = self
             .http
@@ -105,6 +125,12 @@ impl OllamaClient {
         res.json::<R>()
             .await
             .map_err(|e| format!("Failed to parse response from {}: {}", path, e))
+    }
+
+    fn record_tokens(&self, prompt_eval_count: Option<u64>, eval_count: Option<u64>) {
+        if let Some(usage) = &self.usage {
+            usage.add_tokens(prompt_eval_count.unwrap_or(0) + eval_count.unwrap_or(0));
+        }
     }
 
     /// Asks the LLM for a short list of keywords for a piece of text.
@@ -131,8 +157,9 @@ impl OllamaClient {
             return Err("Keyword generation not completed".to_string());
         }
 
-        serde_json::from_str(&chat_response.message.content)
-            .map_err(|e| format!("Failed to parse keyword JSON: {}", e))
+        self.record_tokens(chat_response.prompt_eval_count, chat_response.eval_count);
+
+        parse_keywords(&chat_response.message.content)
     }
 
     /// Asks the LLM for a one-line summary of a piece of text.
@@ -159,6 +186,8 @@ impl OllamaClient {
             return Err("Summary generation not completed".to_string());
         }
 
+        self.record_tokens(chat_response.prompt_eval_count, chat_response.eval_count);
+
         Ok(chat_response.message.content)
     }
 
@@ -170,6 +199,11 @@ impl OllamaClient {
         };
 
         let embedding_response: EmbeddingResponse = self.post_json("/api/embed", &body).await?;
+
+        if let Some(usage) = &self.usage {
+            // Ollama does not report token counts for /api/embed, so estimate.
+            usage.add_tokens((text.chars().count() / 4) as u64);
+        }
 
         let embedding = embedding_response
             .embeddings
@@ -211,12 +245,28 @@ impl OllamaClient {
             return Err("Vision generation not completed".to_string());
         }
 
+        self.record_tokens(generate_response.prompt_eval_count, generate_response.eval_count);
+
         if generate_response.response.trim().is_empty() {
             return Err("Vision model returned an empty caption".to_string());
         }
 
         Ok(generate_response.response)
     }
+}
+
+/// Extracts a JSON array of strings from a completion reply, tolerating stray
+/// prose or a wrapper object (e.g. `{"keywords": [...]}`) around the array.
+fn parse_keywords(content: &str) -> Result<Vec<String>, String> {
+    let start = content.find('[');
+    let end = content.rfind(']');
+    let json = match (start, end) {
+        (Some(s), Some(e)) if e > s => &content[s..=e],
+        _ => return Err("No JSON array found in keyword reply".to_string()),
+    };
+
+    serde_json::from_str::<Vec<String>>(json)
+        .map_err(|e| format!("Failed to parse keyword JSON: {e}"))
 }
 
 #[cfg(test)]
@@ -232,6 +282,35 @@ mod tests {
         assert_eq!(client.llm_model, "gemma3:4b");
         assert_eq!(client.embed_model, "nomic-embed-text");
         assert_eq!(client.base_url, "http://localhost:11434");
+        assert!(client.usage.is_none());
+    }
+
+    #[tokio::test]
+    async fn usage_records_requests_and_tokens() {
+        let mock_server = MockServer::start().await;
+        let usage = Arc::new(crate::services::usage::UsageCounters::default());
+        let client = OllamaClient::with_usage(mock_server.uri(), Some(Arc::clone(&usage)));
+
+        Mock::given(method("POST"))
+            .and(path("/api/chat"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "message": {
+                    "role": "assistant",
+                    "content": "[\"rust\"]"
+                },
+                "done": true,
+                "prompt_eval_count": 10,
+                "eval_count": 5
+            })))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        client.generate_keywords("rust and ai").await.unwrap();
+
+        let snap = usage.snapshot();
+        assert_eq!(snap.requests, 1);
+        assert_eq!(snap.tokens, 15);
     }
 
     #[tokio::test]
@@ -322,5 +401,26 @@ mod tests {
 
         let err = client.generate_keywords("hello").await.unwrap_err();
         assert_eq!(err, "Keyword generation not completed");
+    }
+
+    #[tokio::test]
+    async fn keywords_tolerate_wrapper_object() {
+        let mock_server = MockServer::start().await;
+        let client = OllamaClient::new(mock_server.uri());
+
+        Mock::given(method("POST"))
+            .and(path("/api/chat"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "message": {
+                    "role": "assistant",
+                    "content": "{\"keywords\": [\"rust\", \"ai\"]}"
+                },
+                "done": true
+            })))
+            .mount(&mock_server)
+            .await;
+
+        let result = client.generate_keywords("rust and ai").await;
+        assert_eq!(result, Ok(vec!["rust".to_string(), "ai".to_string()]));
     }
 }

@@ -8,33 +8,7 @@ pub struct DbState {
     pub conn: std::sync::Mutex<Connection>,
 }
 
-// Default database table
-#[derive(Debug)]
-pub struct DbContent {
-    pub file_path: String,
-    pub file_name: String,
-    pub file_hash: String,
-    pub extension: String,
-    pub file_size: i64,
-
-    pub inode: Option<i64>,
-    pub mime_type: Option<String>,
-    pub category: Option<String>,
-    pub content_text: Option<String>,
-    pub ai_summary: Option<String>,
-    pub ai_keywords: Option<String>,
-
-    pub created_at: Option<String>,
-    pub modified_at: Option<String>,
-    pub indexed_at: Option<String>,
-
-    pub ai_status: Option<String>,
-    pub ai_error: Option<String>,
-    pub last_accessed_at: Option<String>,
-    pub last_seen_scan_id: Option<i64>,
-}
-
-/// Initializes the user database path, loads vector support, and structures tables.
+/// Opens the app database, registers sqlite-vec, and applies the schema migration.
 pub fn init_database(app_handle: &AppHandle) -> Result<(Connection, PathBuf)> {
     let app_dir = app_handle
         .path()
@@ -65,16 +39,12 @@ pub fn init_database(app_handle: &AppHandle) -> Result<(Connection, PathBuf)> {
             conn.execute("PRAGMA user_version = 1;", [])?;
         }
 
-        1 => {
-            // Database is already up to date.
-        }
+        1 => {}
 
         _ => {
             panic!("Unknown database version: {}", version);
         }
     }
-
-    //println!("Database path: {}", &db_path.display());
 
     Ok((conn, db_path))
 }

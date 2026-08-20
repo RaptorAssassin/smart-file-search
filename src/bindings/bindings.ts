@@ -8,9 +8,36 @@ export const commands = {
 	getDatabaseSize: () => typedError<number, string>(__TAURI_INVOKE("get_database_size")),
 	getConfig: () => __TAURI_INVOKE<Config>("get_config"),
 	saveConfig: (config: Config) => typedError<null, string>(__TAURI_INVOKE("save_config", { config })),
+	searchFiles: (query: string, filters: {
+	extensions: string[],
+	min_size: number | null,
+	max_size: number | null,
+	modified_after: string | null,
+	modified_before: string | null,
+	created_after: string | null,
+	created_before: string | null,
+} | null, limit: number | null) => typedError<SearchResponse, string>(__TAURI_INVOKE("search_files", { query, filters, limit })),
+	searchFilterOptions: () => typedError<SearchFilterOptions, string>(__TAURI_INVOKE("search_filter_options")),
+	getUsage: () => __TAURI_INVOKE<UsageSnapshot>("get_usage"),
+	openFile: (path: string) => typedError<null, string>(__TAURI_INVOKE("open_file", { path })),
+	revealInFolder: (path: string) => typedError<null, string>(__TAURI_INVOKE("reveal_in_folder", { path })),
 };
 
 /* Types */
+export type AiConfig = {
+	provider?: AiProvider,
+	ollama_url?: string,
+	ollama_model?: string,
+	ollama_model_custom?: boolean,
+	custom_endpoint?: string,
+	custom_api_key?: string,
+	custom_model?: string,
+	embeddings_enabled?: boolean,
+	embed_model?: string,
+};
+
+export type AiProvider = "Ollama" | "Custom";
+
 export type Config = {
 	settings?: SettingsConfig,
 	indexing?: IndexingConfig,
@@ -20,15 +47,61 @@ export type IndexingConfig = {
 	excluded_folders?: string[],
 	excluded_extensions?: string[],
 	excluded_path_patterns?: string[],
+	ignore_hidden?: boolean,
+};
+
+export type SearchFilterOptions = {
+	extensions: string[],
+	categories: string[],
+	min_size: number,
+	max_size: number,
+	min_modified_at: string | null,
+	max_modified_at: string | null,
+};
+
+export type SearchFilters = {
+	extensions: string[],
+	min_size: number | null,
+	max_size: number | null,
+	modified_after: string | null,
+	modified_before: string | null,
+	created_after: string | null,
+	created_before: string | null,
+};
+
+export type SearchResponse = {
+	results: SearchResult[],
+	unavailable: string[],
+};
+
+export type SearchResult = {
+	file_id: number,
+	file_path: string,
+	file_name: string,
+	extension: string,
+	category: string | null,
+	mime_type: string | null,
+	file_size: number,
+	created_at: string | null,
+	modified_at: string | null,
+	score: number | null,
 };
 
 export type SettingsConfig = {
 	theme?: Theme,
 	disable_keyboard_shortcut_hints?: boolean | null,
 	enable_debug_menu?: boolean | null,
+	ai?: AiConfig,
 };
 
 export type Theme = "Dark" | "Light" | "System";
+
+export type UsageSnapshot = {
+	requests: number,
+	tokens: number,
+	files_indexed: number,
+	files_ai_indexed: number,
+};
 
 /* Tauri Specta runtime */
 async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {
